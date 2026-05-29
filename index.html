@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>職安衛資訊儀表板</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="主要導覽">
+      <div class="brand">
+        <div class="brand-mark">安</div>
+        <div>
+          <p class="eyebrow">職安衛資訊儀表板</p>
+          <h1>石化與煉製廠區監測</h1>
+        </div>
+      </div>
+      <nav>
+        <a class="active" href="#overview">總覽</a>
+        <a href="#query">查詢</a>
+        <a href="#trend">趨勢</a>
+        <a href="#incident">事故</a>
+      </nav>
+      <div class="status-panel">
+        <span class="status-dot"></span>
+        <div>
+          <strong>模擬資料</strong>
+          <p>2026 年 6-8 月，供儀表板版型與查詢流程設計使用。</p>
+        </div>
+      </div>
+    </aside>
+
+    <main>
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">桃園、台中、嘉義、高雄大林、高雄林園</p>
+          <h2>職安衛關鍵指標與高危害作業監控</h2>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-button" id="resetFilters" title="重設查詢條件" aria-label="重設查詢條件">↺</button>
+          <button class="primary-button" id="exportSummary">匯出摘要</button>
+        </div>
+      </section>
+
+      <section class="filters" id="query" aria-label="查詢條件">
+        <label>
+          起始日期
+          <input id="startDateFilter" type="date" value="2026-06-01" min="2026-06-01" max="2026-08-31">
+        </label>
+        <label>
+          結束日期
+          <input id="endDateFilter" type="date" value="2026-08-31" min="2026-06-01" max="2026-08-31">
+        </label>
+        <label>
+          工廠
+          <select id="plantFilter">
+            <option value="all">全部廠區</option>
+          </select>
+        </label>
+        <label>
+          高危害作業
+          <select id="hazardFilter">
+            <option value="all">全部等級</option>
+            <option value="A">A 級作業</option>
+            <option value="B">B 級作業</option>
+            <option value="C">C 級作業</option>
+          </select>
+        </label>
+        <label>
+          承攬商
+          <input id="contractorFilter" type="search" placeholder="輸入承攬商名稱">
+        </label>
+      </section>
+
+      <section class="summary-grid" id="overview" aria-label="關鍵指標">
+        <button class="metric-card active" data-metric="equipment">
+          <span>關鍵設備數</span>
+          <strong id="metricEquipment">0</strong>
+          <small>列管關鍵設備</small>
+        </button>
+        <button class="metric-card" data-metric="inspection">
+          <span>定期檢查數</span>
+          <strong id="metricInspection">0</strong>
+          <small>依法定期檢查</small>
+        </button>
+        <button class="metric-card" data-metric="maintenance">
+          <span>維修數</span>
+          <strong id="metricMaintenance">0</strong>
+          <small>設備維護與檢修</small>
+        </button>
+        <button class="metric-card" data-metric="contractors">
+          <span>承攬商進場人數</span>
+          <strong id="metricContractors">0</strong>
+          <small>含進場批次與作業工場</small>
+        </button>
+        <button class="metric-card" data-metric="hazard">
+          <span>高危害作業數</span>
+          <strong id="metricHazard">0</strong>
+          <small>A / B / C 級作業</small>
+        </button>
+        <button class="metric-card" data-metric="permits">
+          <span>工作許可證數</span>
+          <strong id="metricPermits">0</strong>
+          <small>動火、侷限空間、高架等</small>
+        </button>
+        <button class="metric-card" data-metric="machines">
+          <span>機械設備進場數</span>
+          <strong id="metricMachines">0</strong>
+          <small>起重機、高空工作車、電焊機</small>
+        </button>
+        <button class="metric-card danger" data-metric="incidents">
+          <span>意外事故數</span>
+          <strong id="metricIncidents">0</strong>
+          <small>含失能與財損事件</small>
+        </button>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel large" id="trend">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow" id="trendSubtitle">關鍵設備數</p>
+              <h3>近期趨勢</h3>
+            </div>
+            <div class="segmented" role="group" aria-label="趨勢粒度">
+              <button class="active" data-grain="month">月</button>
+              <button data-grain="week">週</button>
+              <button data-grain="year">年</button>
+            </div>
+          </div>
+          <canvas id="trendCanvas" width="900" height="320" aria-label="近期趨勢圖"></canvas>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">高危害作業</p>
+              <h3>A/B/C 級分布</h3>
+            </div>
+          </div>
+          <div class="hazard-bars" id="hazardBars"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">承攬商進場</p>
+              <h3>人數與作業工場</h3>
+            </div>
+          </div>
+          <div class="contractor-list" id="contractorList"></div>
+        </article>
+      </section>
+
+      <section class="content-grid bottom-grid">
+        <article class="panel large" id="incident">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">事故資料表</p>
+              <h3>各廠意外事故紀錄</h3>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>發生日期時間</th>
+                  <th>廠區</th>
+                  <th>災害類型</th>
+                  <th>死傷人數</th>
+                  <th>財物損失</th>
+                  <th>停工天數</th>
+                </tr>
+              </thead>
+              <tbody id="incidentRows"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">安全績效</p>
+              <h3>零災害工時</h3>
+            </div>
+          </div>
+          <div class="zero-hours" id="zeroHours"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
