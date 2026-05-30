@@ -1,15 +1,16 @@
 :root {
-  --bg: #f4f6f8;
+  --bg: #f3f7fa;
   --surface: #ffffff;
-  --surface-2: #edf2f5;
+  --surface-2: #eef5f6;
   --ink: #172026;
   --muted: #65727c;
   --line: #d7dee4;
-  --teal: #047c7a;
+  --teal: #008c95;
   --blue: #2364aa;
-  --amber: #b36b00;
-  --red: #ba2d2d;
+  --amber: #c47a00;
+  --red: #d72638;
   --green: #247a3d;
+  --violet: #6554c0;
   --shadow: 0 12px 30px rgba(23, 32, 38, 0.08);
 }
 
@@ -46,7 +47,9 @@ button {
   height: 100vh;
   padding: 24px;
   color: #eef7f6;
-  background: #11363b;
+  background:
+    linear-gradient(180deg, rgba(0, 140, 149, 0.24), transparent 28%),
+    #0c2f35;
   display: flex;
   flex-direction: column;
   gap: 28px;
@@ -138,7 +141,7 @@ main {
   gap: 18px;
 }
 
-.topbar,
+.hero,
 .filters,
 .panel,
 .metric-card {
@@ -147,21 +150,24 @@ main {
   box-shadow: var(--shadow);
 }
 
-.topbar {
+.hero {
   display: flex;
   justify-content: space-between;
   gap: 16px;
   align-items: center;
-  padding: 22px;
+  padding: 26px;
   border-radius: 8px;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(0, 140, 149, 0.16), transparent 34%),
+    linear-gradient(135deg, #ffffff, #f6fbfc);
 }
 
-.topbar .eyebrow,
+.hero .eyebrow,
 .panel .eyebrow {
   color: var(--muted);
 }
 
-.topbar h2 {
+.hero h2 {
   font-size: clamp(24px, 3vw, 34px);
 }
 
@@ -195,7 +201,7 @@ main {
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
   gap: 14px;
   padding: 16px;
   border-radius: 8px;
@@ -222,12 +228,12 @@ input {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
 }
 
 .metric-card {
-  min-height: 126px;
+  min-height: 138px;
   border-radius: 8px;
   padding: 16px;
   text-align: left;
@@ -254,6 +260,7 @@ input {
 
 .metric-card.active {
   border-left-color: var(--teal);
+  transform: translateY(-2px);
 }
 
 .metric-card.danger.active {
@@ -323,7 +330,8 @@ canvas {
 
 .status-bars,
 .plant-risk-list,
-.module-grid {
+.indicator-grid,
+.gas-grid {
   display: grid;
   gap: 12px;
 }
@@ -398,11 +406,11 @@ canvas {
   background: linear-gradient(90deg, var(--amber), var(--red));
 }
 
-.module-grid {
-  grid-template-columns: repeat(5, minmax(180px, 1fr));
+.indicator-grid {
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
 }
 
-.module-card {
+.indicator-card {
   min-height: 132px;
   padding: 14px;
   border-radius: 8px;
@@ -415,27 +423,82 @@ canvas {
   border-left: 5px solid var(--green);
 }
 
-.module-card span {
+.indicator-card span {
   color: var(--muted);
   font-size: 14px;
   font-weight: 700;
 }
 
-.module-card strong {
+.indicator-card strong {
   font-size: 30px;
 }
 
-.module-card small {
+.indicator-card small {
   color: var(--muted);
   line-height: 1.45;
 }
 
-.module-card.warn {
+.indicator-card.warn {
   border-left-color: var(--amber);
 }
 
-.module-card.bad {
+.indicator-card.bad {
   border-left-color: var(--red);
+}
+
+.gas-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gas-card {
+  min-height: 136px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff, #f9fbfc);
+  display: grid;
+  gap: 8px;
+  border-left: 5px solid var(--green);
+}
+
+.gas-card span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.gas-card strong {
+  font-size: 38px;
+  line-height: 1;
+}
+
+.gas-card small {
+  color: var(--muted);
+}
+
+.gas-card em {
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(36, 122, 61, 0.12);
+  color: var(--green);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.gas-card.alert {
+  border-color: rgba(215, 38, 56, 0.42);
+  border-left-color: var(--red);
+  background: linear-gradient(180deg, #fff, #fff4f5);
+  box-shadow: 0 12px 30px rgba(215, 38, 56, 0.12);
+}
+
+.gas-card.alert strong,
+.gas-card.alert em {
+  color: var(--red);
+}
+
+.gas-card.alert em {
+  background: rgba(215, 38, 56, 0.12);
 }
 
 .risk-badge {
@@ -510,7 +573,8 @@ th {
 
   .filters,
   .summary-grid,
-  .module-grid {
+  .indicator-grid,
+  .gas-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -521,7 +585,7 @@ th {
     padding: 16px;
   }
 
-  .topbar,
+  .hero,
   .panel-header,
   .content-grid {
     display: grid;
@@ -533,12 +597,13 @@ th {
 
   .filters,
   .summary-grid,
-  .module-grid,
+  .indicator-grid,
+  .gas-grid,
   nav {
     grid-template-columns: 1fr;
   }
 
-  .topbar h2 {
+  .hero h2 {
     font-size: 24px;
   }
 }

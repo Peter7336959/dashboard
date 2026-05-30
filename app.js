@@ -1,90 +1,8 @@
-const plants = ["桃園", "台中", "嘉義", "高雄大林", "高雄林園"];
-let months = buildMonthRange("2024-01", "2026-12");
-
-const modules = [
-  {
-    id: "permit",
-    name: "許可基本資料",
-    items: ["工作內容與地點完整", "作業分級正確", "核准工作時間明確", "回簽資料完整"]
-  },
-  {
-    id: "workType",
-    name: "作業分級與工作項目",
-    items: ["動火/非動火判定正確", "A/B/C級作業判定正確", "附加檢點表適用", "延時工作經核准"]
-  },
-  {
-    id: "contractor",
-    name: "承攬商與人員資格",
-    items: ["施工人員名冊完整", "工地負責人到場", "安衛人員到場", "特殊作業主管資格符合"]
-  },
-  {
-    id: "hazardNotice",
-    name: "危害告知",
-    items: ["承攬商已知悉注意事項", "施工人員完成危害告知", "勤前教育紀錄完整", "緊急聯絡資訊明確"]
-  },
-  {
-    id: "isolation",
-    name: "環境安全隔離",
-    items: ["設備管線已釋壓清洗", "進出口已關斷/盲封/掛牌", "電源隔離加鎖掛牌", "暗溝陰井已堵塞密封"]
-  },
-  {
-    id: "gas",
-    name: "氣體偵測",
-    items: ["可燃性氣體低於20%LEL", "氧氣濃度符合標準", "有害氣體低於容許濃度", "上下午或連續測定紀錄完整"]
-  },
-  {
-    id: "fireExplosion",
-    name: "消防與防爆設備",
-    items: ["20型滅火器配置足夠", "防爆電氣設備符合", "安全工具使用正確", "消防水帶或防火措施到位"]
-  },
-  {
-    id: "ppeHeight",
-    name: "PPE與高處防墜",
-    items: ["個人防護具穿戴正確", "安全帶/安全母索使用", "施工架檢點合格", "安全網或工作平台設置"]
-  },
-  {
-    id: "patrol",
-    name: "巡查會簽",
-    items: ["轄區檢點簽認", "監造巡查簽認", "安衛人員巡查紀錄", "異常已即時通知"]
-  },
-  {
-    id: "closeout",
-    name: "收工回簽與現場紀錄",
-    items: ["環境整理完成", "施工前後照片完整", "氣體偵測照片上傳", "改善事項結案佐證完整"]
-  }
-];
-
-const metricLabels = {
-  permits: "工作許可證",
-  checks: "查核項次",
-  passRate: "整體合格率",
-  critical: "重大缺失",
-  open: "未結案缺失",
-  gas: "氣體偵測異常",
-  hotWork: "動火高風險缺失",
-  highWork: "高處防墜缺失"
-};
-
-const plantProfile = {
-  "桃園": { permits: 92, risk: 0.92 },
-  "台中": { permits: 76, risk: 0.86 },
-  "嘉義": { permits: 64, risk: 0.78 },
-  "高雄大林": { permits: 128, risk: 1.15 },
-  "高雄林園": { permits: 116, risk: 1.08 }
-};
-
-const moduleRisk = {
-  permit: 0.55,
-  workType: 0.72,
-  contractor: 0.9,
-  hazardNotice: 0.65,
-  isolation: 1.18,
-  gas: 1.25,
-  fireExplosion: 1.28,
-  ppeHeight: 1.2,
-  patrol: 0.8,
-  closeout: 0.95
-};
+let controlRecords = [];
+let measurements = [];
+let months = [];
+let plants = [];
+let hazardLevels = [];
 
 const state = { metric: "permits" };
 
@@ -92,171 +10,116 @@ const selectors = {
   startMonth: document.getElementById("startMonthFilter"),
   endMonth: document.getElementById("endMonthFilter"),
   plant: document.getElementById("plantFilter"),
-  module: document.getElementById("moduleFilter"),
-  risk: document.getElementById("riskFilter")
+  hazard: document.getElementById("hazardFilter")
 };
 
-plants.forEach((plant) => selectors.plant.append(new Option(plant, plant)));
-modules.forEach((module) => selectors.module.append(new Option(module.name, module.id)));
-
-function buildMonthRange(start, end) {
-  const result = [];
-  const [startYear, startMonth] = start.split("-").map(Number);
-  const [endYear, endMonth] = end.split("-").map(Number);
-  let year = startYear;
-  let month = startMonth;
-
-  while (year < endYear || (year === endYear && month <= endMonth)) {
-    result.push(`${year}-${String(month).padStart(2, "0")}`);
-    month += 1;
-    if (month > 12) {
-      month = 1;
-      year += 1;
-    }
-  }
-  return result;
-}
-
-function configureMonthFilters() {
-  const start = months[0];
-  const end = months[months.length - 1];
-  [selectors.startMonth, selectors.endMonth].forEach((input) => {
-    input.min = start;
-    input.max = end;
-  });
-  selectors.startMonth.value = start;
-  selectors.endMonth.value = end;
-}
-
-function seededNoise(seed) {
-  const value = Math.sin(seed * 999) * 10000;
-  return value - Math.floor(value);
-}
-
-function buildRecords() {
-  const records = [];
-  plants.forEach((plant, plantIndex) => {
-    months.forEach((month, monthIndex) => {
-      const seasonal = 1 + 0.08 * Math.sin((monthIndex + 1) / 12 * Math.PI * 2);
-      const permitCount = Math.round(plantProfile[plant].permits * seasonal + seededNoise(plantIndex * 31 + monthIndex) * 12);
-      modules.forEach((module, moduleIndex) => {
-        module.items.forEach((item, itemIndex) => {
-          const seed = (plantIndex + 1) * 1000 + (monthIndex + 1) * 100 + moduleIndex * 10 + itemIndex;
-          const sampleRatio = 0.82 + seededNoise(seed) * 0.2;
-          const checks = Math.max(8, Math.round(permitCount * sampleRatio));
-          const baseDefectRate = 0.012 + 0.028 * plantProfile[plant].risk * moduleRisk[module.id];
-          const itemFactor = 0.85 + seededNoise(seed + 7) * 0.45;
-          const defects = Math.min(checks, Math.round(checks * baseDefectRate * itemFactor));
-          const criticalBase = ["gas", "fireExplosion", "isolation", "ppeHeight"].includes(module.id) ? 0.22 : 0.08;
-          const critical = Math.min(defects, Math.round(defects * (criticalBase + seededNoise(seed + 13) * 0.12)));
-          const open = Math.min(defects, Math.round(defects * (0.22 + seededNoise(seed + 19) * 0.28)));
-          const overdue = Math.min(open, Math.round(open * (0.18 + seededNoise(seed + 23) * 0.22)));
-          const pass = checks - defects;
-          const passRate = pass / checks;
-          const riskScore = defects * 2 + critical * 8 + open * 3 + overdue * 5;
-          const riskLevel = riskScore >= 42 ? "高" : riskScore >= 18 ? "中" : "低";
-
-          records.push({
-            month,
-            plant,
-            moduleId: module.id,
-            moduleName: module.name,
-            item,
-            permits: permitCount,
-            checks,
-            pass,
-            defects,
-            critical,
-            open,
-            overdue,
-            passRate,
-            riskScore,
-            riskLevel
-          });
-        });
-      });
-    });
-  });
-  return records;
-}
-
-let records = [];
+const metricLabels = {
+  permits: "工作許可證",
+  checks: "管制查核項次",
+  passRate: "整體合格率",
+  critical: "重大缺失",
+  open: "未結案缺失",
+  envAlerts: "環境測定警示"
+};
 
 function formatNumber(value) {
-  return new Intl.NumberFormat("zh-TW").format(value);
+  return new Intl.NumberFormat("zh-TW").format(Math.round(value || 0));
+}
+
+function formatDecimal(value, digits = 1) {
+  return new Intl.NumberFormat("zh-TW", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value || 0);
 }
 
 function formatPercent(value) {
-  return `${Math.round(value * 10) / 10}%`;
+  return `${formatDecimal(value, 1)}%`;
 }
 
-function filteredRecords() {
-  return records.filter((record) => {
-    return record.month >= selectors.startMonth.value
-      && record.month <= selectors.endMonth.value
-      && (selectors.plant.value === "all" || record.plant === selectors.plant.value)
-      && (selectors.module.value === "all" || record.moduleId === selectors.module.value)
-      && (selectors.risk.value === "all" || record.riskLevel === selectors.risk.value);
-  });
+function inFilter(row) {
+  return row.month >= selectors.startMonth.value
+    && row.month <= selectors.endMonth.value
+    && (selectors.plant.value === "all" || row.plant === selectors.plant.value)
+    && (selectors.hazard.value === "all" || row.hazard_level === selectors.hazard.value);
 }
 
-function groupBy(data, keyFn) {
-  return data.reduce((map, row) => {
-    const key = keyFn(row);
-    const current = map.get(key) || [];
-    current.push(row);
-    map.set(key, current);
-    return map;
-  }, new Map());
+function filteredControls() {
+  return controlRecords.filter(inFilter);
 }
 
-function summarize(data) {
-  const permitKeys = new Set(data.map((row) => `${row.month}|${row.plant}`));
-  const permits = [...permitKeys].reduce((sum, key) => {
-    const [month, plant] = key.split("|");
-    const row = data.find((item) => item.month === month && item.plant === plant);
-    return sum + (row?.permits || 0);
-  }, 0);
-  const checks = data.reduce((sum, row) => sum + row.checks, 0);
-  const pass = data.reduce((sum, row) => sum + row.pass, 0);
-  const defects = data.reduce((sum, row) => sum + row.defects, 0);
-  const critical = data.reduce((sum, row) => sum + row.critical, 0);
-  const open = data.reduce((sum, row) => sum + row.open, 0);
-  const overdue = data.reduce((sum, row) => sum + row.overdue, 0);
+function filteredMeasurements() {
+  return measurements.filter(inFilter);
+}
+
+function uniquePermitTotal(rows) {
+  const groups = new Map();
+  rows.forEach((row) => groups.set(`${row.month}|${row.plant}|${row.hazard_level}`, row.permit_count));
+  return [...groups.values()].reduce((sum, value) => sum + value, 0);
+}
+
+function summarizeControls(rows) {
+  const checks = rows.reduce((sum, row) => sum + row.check_count, 0);
+  const pass = rows.reduce((sum, row) => sum + row.pass_count, 0);
+  const defects = rows.reduce((sum, row) => sum + row.defect_count, 0);
+  const critical = rows.reduce((sum, row) => sum + row.critical_defect_count, 0);
+  const open = rows.reduce((sum, row) => sum + row.open_defect_count, 0);
+  const overdue = rows.reduce((sum, row) => sum + row.overdue_defect_count, 0);
   return {
-    permits,
+    permits: uniquePermitTotal(rows),
     checks,
     pass,
     defects,
     critical,
     open,
     overdue,
-    passRate: checks ? pass / checks * 100 : 0,
-    gas: data.filter((row) => row.moduleId === "gas").reduce((sum, row) => sum + row.defects, 0),
-    hotWork: data.filter((row) => row.moduleId === "fireExplosion").reduce((sum, row) => sum + row.critical, 0),
-    highWork: data.filter((row) => row.moduleId === "ppeHeight").reduce((sum, row) => sum + row.defects, 0)
+    passRate: checks ? (pass / checks) * 100 : 0
   };
 }
 
-function metricValue(data, metric) {
-  const summary = summarize(data);
+function summarizeMeasurements(rows) {
+  if (!rows.length) {
+    return {
+      combustible: 0,
+      oxygen: 0,
+      co: 0,
+      h2s: 0,
+      combustibleOk: true,
+      oxygenOk: true,
+      coOk: true,
+      h2sOk: true,
+      alerts: 0
+    };
+  }
+  return {
+    combustible: Math.max(...rows.map((row) => row.combustible_gas_max_pct_lel)),
+    oxygen: Math.min(...rows.map((row) => row.oxygen_min_pct)),
+    co: Math.max(...rows.map((row) => row.co_max_ppm)),
+    h2s: Math.max(...rows.map((row) => row.h2s_max_ppm)),
+    combustibleOk: rows.every((row) => row.combustible_ok),
+    oxygenOk: rows.every((row) => row.oxygen_ok),
+    coOk: rows.every((row) => row.co_ok),
+    h2sOk: rows.every((row) => row.h2s_ok),
+    alerts: rows.reduce((sum, row) => sum + row.alert_count, 0)
+  };
+}
+
+function metricValue(rows, measureRows, metric) {
+  const summary = summarizeControls(rows);
   if (metric === "passRate") return summary.passRate;
+  if (metric === "envAlerts") return summarizeMeasurements(measureRows).alerts;
   return summary[metric] || 0;
 }
 
-function updateMetrics(data) {
-  const summary = summarize(data);
+function updateMetrics(rows, measureRows) {
+  const summary = summarizeControls(rows);
+  const env = summarizeMeasurements(measureRows);
   document.getElementById("metricPermits").textContent = formatNumber(summary.permits);
   document.getElementById("metricChecks").textContent = formatNumber(summary.checks);
   document.getElementById("metricPassRate").textContent = formatPercent(summary.passRate);
   document.getElementById("metricCritical").textContent = formatNumber(summary.critical);
   document.getElementById("metricOpen").textContent = formatNumber(summary.open);
-  document.getElementById("metricGas").textContent = formatNumber(summary.gas);
-  document.getElementById("metricHotWork").textContent = formatNumber(summary.hotWork);
-  document.getElementById("metricHighWork").textContent = formatNumber(summary.highWork);
+  document.getElementById("metricEnvAlerts").textContent = formatNumber(env.alerts);
 }
 
-function drawTrend(data) {
+function drawTrend(rows, measureRows) {
   const canvas = document.getElementById("trendCanvas");
   const ctx = canvas.getContext("2d");
   const ratio = window.devicePixelRatio || 1;
@@ -267,11 +130,17 @@ function drawTrend(data) {
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
   ctx.clearRect(0, 0, rect.width, height);
 
-  const buckets = months
-    .filter((month) => month >= selectors.startMonth.value && month <= selectors.endMonth.value)
-    .map((month) => ({ month, value: metricValue(data.filter((row) => row.month === month), state.metric) }));
+  const activeMonths = months.filter((month) => month >= selectors.startMonth.value && month <= selectors.endMonth.value);
+  const buckets = activeMonths.map((month) => ({
+    month,
+    value: metricValue(
+      rows.filter((row) => row.month === month),
+      measureRows.filter((row) => row.month === month),
+      state.metric
+    )
+  }));
   const max = Math.max(...buckets.map((item) => item.value), 1);
-  const padding = { top: 24, right: 24, bottom: 48, left: 64 };
+  const padding = { top: 24, right: 24, bottom: 48, left: 68 };
   const chartW = rect.width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
 
@@ -287,7 +156,7 @@ function drawTrend(data) {
     ctx.lineTo(padding.left + chartW, y);
     ctx.stroke();
     const tick = max * (1 - i / 4);
-    ctx.fillText(state.metric === "passRate" ? formatPercent(tick) : formatNumber(Math.round(tick)), 8, y + 4);
+    ctx.fillText(state.metric === "passRate" ? formatPercent(tick) : formatNumber(tick), 8, y + 4);
   }
 
   const step = chartW / Math.max(buckets.length - 1, 1);
@@ -297,7 +166,7 @@ function drawTrend(data) {
     ...item
   }));
 
-  ctx.strokeStyle = ["critical", "open", "gas", "hotWork", "highWork"].includes(state.metric) ? "#ba2d2d" : "#047c7a";
+  ctx.strokeStyle = ["critical", "open", "envAlerts"].includes(state.metric) ? "#d72638" : "#008c95";
   ctx.lineWidth = 3;
   ctx.beginPath();
   points.forEach((point, index) => {
@@ -306,45 +175,51 @@ function drawTrend(data) {
   });
   ctx.stroke();
 
-  points.forEach((point) => {
+  points.forEach((point, index) => {
     ctx.fillStyle = ctx.strokeStyle;
     ctx.beginPath();
     ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#172026";
-    const label = state.metric === "passRate" ? formatPercent(point.value) : formatNumber(Math.round(point.value));
-    ctx.fillText(label, point.x - 18, point.y - 12);
-    const shouldShowMonth = buckets.length <= 14 || point.month.endsWith("-01") || point.month.endsWith("-06") || point.month.endsWith("-12");
-    if (shouldShowMonth) {
+    if (index % Math.max(1, Math.ceil(points.length / 12)) === 0) {
       ctx.fillStyle = "#65727c";
-      ctx.fillText(point.month.slice(2), point.x - 16, 296);
+      ctx.fillText(point.month.slice(2), point.x - 18, 296);
     }
   });
 
   document.getElementById("trendSubtitle").textContent = metricLabels[state.metric];
 }
 
-function updatePlantRisk(data) {
-  const rows = [...groupBy(data, (row) => row.plant).entries()].map(([plant, items]) => {
-    const summary = summarize(items);
-    const score = summary.critical * 8 + summary.open * 3 + summary.overdue * 5 + summary.defects;
+function groupBy(rows, keyFn) {
+  return rows.reduce((map, row) => {
+    const key = keyFn(row);
+    const current = map.get(key) || [];
+    current.push(row);
+    map.set(key, current);
+    return map;
+  }, new Map());
+}
+
+function updatePlantRisk(rows) {
+  const items = [...groupBy(rows, (row) => row.plant).entries()].map(([plant, plantRows]) => {
+    const summary = summarizeControls(plantRows);
+    const score = summary.defects * 2 + summary.critical * 9 + summary.open * 3 + summary.overdue * 5;
     return { plant, score, summary };
   }).sort((a, b) => b.score - a.score);
-  const max = Math.max(...rows.map((row) => row.score), 1);
-  document.getElementById("plantRiskList").innerHTML = rows.map((row) => `
+  const max = Math.max(...items.map((item) => item.score), 1);
+  document.getElementById("plantRiskList").innerHTML = items.map((item) => `
     <div class="risk-row">
       <div>
-        <strong>${row.plant}</strong>
-        <div class="meta-text">重大 ${formatNumber(row.summary.critical)}，未結案 ${formatNumber(row.summary.open)}</div>
+        <strong>${item.plant}</strong>
+        <div class="meta-text">重大 ${formatNumber(item.summary.critical)}｜未結案 ${formatNumber(item.summary.open)}</div>
       </div>
-      <div class="risk-meter"><span style="width:${row.score / max * 100}%"></span></div>
-      <strong>${formatNumber(row.score)}</strong>
+      <div class="risk-meter"><span style="width:${item.score / max * 100}%"></span></div>
+      <strong>${formatNumber(item.score)}</strong>
     </div>
   `).join("");
 }
 
-function updateStatusBars(data) {
-  const summary = summarize(data);
+function updateStatusBars(rows) {
+  const summary = summarizeControls(rows);
   const values = [
     { label: "一般缺失", value: Math.max(summary.defects - summary.critical, 0), className: "b" },
     { label: "重大缺失", value: summary.critical, className: "a" },
@@ -360,61 +235,95 @@ function updateStatusBars(data) {
   `).join("");
 }
 
-function updateModules(data) {
-  const rows = modules.map((module) => {
-    const items = data.filter((row) => row.moduleId === module.id);
-    return { module, summary: summarize(items) };
-  });
-  document.getElementById("moduleGrid").innerHTML = rows.map(({ module, summary }) => {
-    const passRate = summary.checks ? summary.passRate : 0;
+function gasCard(label, value, unit, ok, standard) {
+  return `
+    <div class="gas-card ${ok ? "ok" : "alert"}">
+      <span>${label}</span>
+      <strong>${value}</strong>
+      <small>${unit}｜基準 ${standard}</small>
+      ${ok ? "<em>符合</em>" : "<em>紅色警示</em>"}
+    </div>
+  `;
+}
+
+function updateGasGrid(measureRows) {
+  const env = summarizeMeasurements(measureRows);
+  document.getElementById("gasGrid").innerHTML = [
+    gasCard("可燃性氣體", formatDecimal(env.combustible), "%LEL", env.combustibleOk, "<20"),
+    gasCard("氧氣", formatDecimal(env.oxygen), "%", env.oxygenOk, ">=18"),
+    gasCard("一氧化碳", formatDecimal(env.co), "ppm", env.coOk, "<50"),
+    gasCard("硫化氫", formatDecimal(env.h2s), "ppm", env.h2sOk, "<10")
+  ].join("");
+}
+
+function updateIndicators(rows) {
+  const items = [...groupBy(rows, (row) => row.indicator).entries()].map(([indicator, indicatorRows]) => {
+    const summary = summarizeControls(indicatorRows);
+    return { indicator, summary };
+  }).sort((a, b) => a.summary.passRate - b.summary.passRate);
+
+  document.getElementById("indicatorGrid").innerHTML = items.map((item) => {
+    const passRate = item.summary.passRate;
     const className = passRate < 94 ? "bad" : passRate < 97 ? "warn" : "good";
     return `
-      <button class="module-card ${className}" data-module="${module.id}">
-        <span>${module.name}</span>
+      <button class="indicator-card ${className}" data-indicator="${item.indicator}">
+        <span>${item.indicator}</span>
         <strong>${formatPercent(passRate)}</strong>
-        <small>缺失 ${formatNumber(summary.defects)}｜重大 ${formatNumber(summary.critical)}｜未結案 ${formatNumber(summary.open)}</small>
+        <small>缺失 ${formatNumber(item.summary.defects)}｜重大 ${formatNumber(item.summary.critical)}｜未結案 ${formatNumber(item.summary.open)}</small>
       </button>
     `;
   }).join("");
-
-  document.querySelectorAll(".module-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      selectors.module.value = card.dataset.module;
-      render();
-      document.getElementById("details").scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  });
 }
 
-function updateDetails(data) {
-  const rows = [...data]
-    .sort((a, b) => b.riskScore - a.riskScore)
-    .slice(0, 80)
+function updateDetails(rows) {
+  const html = [...rows]
+    .sort((a, b) => b.risk_score - a.risk_score)
+    .slice(0, 100)
     .map((row) => `
       <tr>
         <td>${row.month}</td>
         <td>${row.plant}</td>
-        <td>${row.moduleName}</td>
-        <td>${row.item}</td>
-        <td>${formatNumber(row.checks)}</td>
-        <td>${formatNumber(row.defects)}</td>
-        <td>${formatNumber(row.critical)}</td>
-        <td>${formatNumber(row.open)}</td>
-        <td>${formatPercent(row.passRate * 100)}</td>
-        <td><span class="risk-badge ${row.riskLevel}">${row.riskLevel}</span></td>
+        <td>${row.hazard_name}</td>
+        <td>${row.indicator}</td>
+        <td><strong>${row.control_item}</strong><div class="meta-text">${row.content}</div></td>
+        <td>${formatNumber(row.check_count)}</td>
+        <td>${formatNumber(row.defect_count)}</td>
+        <td>${formatNumber(row.critical_defect_count)}</td>
+        <td>${formatNumber(row.open_defect_count)}</td>
+        <td>${formatPercent(row.pass_rate * 100)}</td>
+        <td><span class="risk-badge ${row.risk_level}">${row.risk_level}</span></td>
       </tr>
-    `);
-  document.getElementById("detailRows").innerHTML = rows.join("") || "<tr><td colspan=\"10\">無符合條件資料</td></tr>";
+    `).join("");
+  document.getElementById("detailRows").innerHTML = html || "<tr><td colspan=\"11\">無符合條件資料</td></tr>";
 }
 
 function render() {
-  const data = filteredRecords();
-  updateMetrics(data);
-  drawTrend(data);
-  updatePlantRisk(data);
-  updateStatusBars(data);
-  updateModules(data);
-  updateDetails(data);
+  const rows = filteredControls();
+  const measureRows = filteredMeasurements();
+  updateMetrics(rows, measureRows);
+  drawTrend(rows, measureRows);
+  updatePlantRisk(rows);
+  updateStatusBars(rows);
+  updateGasGrid(measureRows);
+  updateIndicators(rows);
+  updateDetails(rows);
+}
+
+function hydrateFilters(payload) {
+  plants = payload.plants;
+  months = payload.months;
+  hazardLevels = payload.hazardLevels;
+  plants.forEach((plant) => selectors.plant.append(new Option(plant, plant)));
+  hazardLevels.forEach((level) => selectors.hazard.append(new Option(`${level.name}（${level.label}）`, level.id)));
+}
+
+async function initialize() {
+  const response = await fetch("data/work-permit-control-dashboard.json");
+  const payload = await response.json();
+  controlRecords = payload.controlRecords;
+  measurements = payload.environmentMeasurements;
+  hydrateFilters(payload);
+  render();
 }
 
 document.querySelectorAll(".metric-card").forEach((card) => {
@@ -429,46 +338,32 @@ document.querySelectorAll(".metric-card").forEach((card) => {
 Object.values(selectors).forEach((input) => input.addEventListener("input", render));
 
 document.getElementById("resetFilters").addEventListener("click", () => {
-  selectors.startMonth.value = months[0];
-  selectors.endMonth.value = months[months.length - 1];
+  selectors.startMonth.value = "2024-01";
+  selectors.endMonth.value = "2026-12";
   selectors.plant.value = "all";
-  selectors.module.value = "all";
-  selectors.risk.value = "all";
+  selectors.hazard.value = "all";
   render();
 });
 
 document.getElementById("exportSummary").addEventListener("click", () => {
-  const summary = summarize(filteredRecords());
+  const rows = filteredControls();
+  const measureRows = filteredMeasurements();
+  const summary = summarizeControls(rows);
+  const env = summarizeMeasurements(measureRows);
   const text = [
-    "工作許可證共同核心查核摘要",
+    "工作許可管制查核摘要",
     `期間：${selectors.startMonth.value} 至 ${selectors.endMonth.value}`,
     `廠區：${selectors.plant.value === "all" ? "全部廠區" : selectors.plant.value}`,
-    `模組：${selectors.module.value === "all" ? "全部模組" : modules.find((module) => module.id === selectors.module.value)?.name}`,
+    `危害等級：${selectors.hazard.value === "all" ? "全部等級" : selectors.hazard.value}`,
     `工作許可證：${formatNumber(summary.permits)}`,
     `查核項次：${formatNumber(summary.checks)}`,
-    `整體合格率：${formatPercent(summary.passRate)}`,
+    `合格率：${formatPercent(summary.passRate)}`,
     `重大缺失：${formatNumber(summary.critical)}`,
-    `未結案缺失：${formatNumber(summary.open)}`
+    `環境測定警示：${formatNumber(env.alerts)}`
   ].join("\n");
   navigator.clipboard?.writeText(text);
   alert(text);
 });
 
 window.addEventListener("resize", render);
-
-async function initializeData() {
-  try {
-    const response = await fetch("data/work-permit-core-checks.json");
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    months = payload.months?.length ? payload.months : months;
-    records = payload.records;
-  } catch (error) {
-    records = buildRecords();
-    console.warn("使用內建模擬資料，未讀取外部 JSON：", error);
-  }
-  configureMonthFilters();
-  render();
-}
-
-initializeData();
+initialize();

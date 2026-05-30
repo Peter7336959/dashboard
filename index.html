@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>職安衛工作許可證查核儀表板</title>
+  <title>工作許可管制儀表板</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,30 +12,30 @@
       <div class="brand">
         <div class="brand-mark">安</div>
         <div>
-          <p class="eyebrow">CPC OSH Dashboard</p>
-          <h1>工作許可證查核儀表板</h1>
+          <p class="eyebrow">Permit Control</p>
+          <h1>工作許可管制儀表板</h1>
         </div>
       </div>
       <nav>
         <a class="active" href="#overview">總覽</a>
-        <a href="#risk">風險排行</a>
-        <a href="#modules">核心模組</a>
-        <a href="#details">細部查核</a>
+        <a href="#environment">環境測定</a>
+        <a href="#indicators">管制項目</a>
+        <a href="#details">明細</a>
       </nav>
       <div class="status-panel">
         <span class="status-dot"></span>
         <div>
-          <strong>模擬資料</strong>
-          <p>5個廠區、3年逐月資料、10項共同核心查核模組。</p>
+          <strong>3年模擬資料</strong>
+          <p>依「工作許可管制項目」表格產生，涵蓋 5 個石化煉油廠。</p>
         </div>
       </div>
     </aside>
 
     <main>
-      <section class="topbar">
+      <section class="hero">
         <div>
           <p class="eyebrow">桃園、台中、嘉義、高雄大林、高雄林園</p>
-          <h2>工作許可證共同核心查核結果</h2>
+          <h2>工作許可與現場管制查核</h2>
         </div>
         <div class="topbar-actions">
           <button class="icon-button" id="resetFilters" title="重設篩選" aria-label="重設篩選">↺</button>
@@ -59,18 +59,9 @@
           </select>
         </label>
         <label>
-          核心模組
-          <select id="moduleFilter">
-            <option value="all">全部模組</option>
-          </select>
-        </label>
-        <label>
-          風險等級
-          <select id="riskFilter">
+          危害等級
+          <select id="hazardFilter">
             <option value="all">全部等級</option>
-            <option value="高">高</option>
-            <option value="中">中</option>
-            <option value="低">低</option>
           </select>
         </label>
       </section>
@@ -79,12 +70,12 @@
         <button class="metric-card active" data-metric="permits">
           <span>工作許可證</span>
           <strong id="metricPermits">0</strong>
-          <small>核准與執行件數</small>
+          <small>依廠區/月/危害等級彙總</small>
         </button>
         <button class="metric-card" data-metric="checks">
-          <span>查核項次</span>
+          <span>管制查核項次</span>
           <strong id="metricChecks">0</strong>
-          <small>核心模組查核總量</small>
+          <small>22項管制項目查核量</small>
         </button>
         <button class="metric-card" data-metric="passRate">
           <span>整體合格率</span>
@@ -94,27 +85,17 @@
         <button class="metric-card danger" data-metric="critical">
           <span>重大缺失</span>
           <strong id="metricCritical">0</strong>
-          <small>立即矯正或停工等級</small>
+          <small>需主管關注或立即矯正</small>
         </button>
         <button class="metric-card" data-metric="open">
           <span>未結案缺失</span>
           <strong id="metricOpen">0</strong>
-          <small>待改善或逾期追蹤</small>
+          <small>含待改善與逾期追蹤</small>
         </button>
-        <button class="metric-card" data-metric="gas">
-          <span>氣體偵測異常</span>
-          <strong id="metricGas">0</strong>
-          <small>LEL、氧氣或有害氣體</small>
-        </button>
-        <button class="metric-card" data-metric="hotWork">
-          <span>動火高風險缺失</span>
-          <strong id="metricHotWork">0</strong>
-          <small>看火、防火、電焊與氣瓶</small>
-        </button>
-        <button class="metric-card" data-metric="highWork">
-          <span>高處防墜缺失</span>
-          <strong id="metricHighWork">0</strong>
-          <small>施工架、安全帶、安全母索</small>
+        <button class="metric-card danger" data-metric="envAlerts">
+          <span>環境測定警示</span>
+          <strong id="metricEnvAlerts">0</strong>
+          <small>任一讀值不符基準</small>
         </button>
       </section>
 
@@ -123,13 +104,13 @@
           <div class="panel-header">
             <div>
               <p class="eyebrow" id="trendSubtitle">工作許可證</p>
-              <h3>3年逐月趨勢</h3>
+              <h3>月趨勢</h3>
             </div>
           </div>
           <canvas id="trendCanvas" width="900" height="320" aria-label="月趨勢圖"></canvas>
         </article>
 
-        <article class="panel" id="risk">
+        <article class="panel">
           <div class="panel-header">
             <div>
               <p class="eyebrow">管理優先順序</p>
@@ -142,29 +123,39 @@
         <article class="panel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">矯正追蹤</p>
-              <h3>缺失狀態</h3>
+              <p class="eyebrow">缺失追蹤</p>
+              <h3>改善狀態</h3>
             </div>
           </div>
           <div class="status-bars" id="statusBars"></div>
         </article>
       </section>
 
-      <section class="panel" id="modules">
+      <section class="panel" id="environment">
         <div class="panel-header">
           <div>
-            <p class="eyebrow">共同核心查核模組</p>
-            <h3>模組合格率與重大缺失</h3>
+            <p class="eyebrow">測定基準：可燃性氣體 &lt;20%LEL；氧氣 >=18%；CO &lt;50ppm；H2S &lt;10ppm</p>
+            <h3>環境測定讀值</h3>
           </div>
         </div>
-        <div class="module-grid" id="moduleGrid"></div>
+        <div class="gas-grid" id="gasGrid"></div>
+      </section>
+
+      <section class="panel" id="indicators">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">依 Word 表格項目彙總</p>
+            <h3>指標與管制項目</h3>
+          </div>
+        </div>
+        <div class="indicator-grid" id="indicatorGrid"></div>
       </section>
 
       <section class="panel" id="details">
         <div class="panel-header">
           <div>
-            <p class="eyebrow">可下鑽細項</p>
-            <h3>查核項目明細</h3>
+            <p class="eyebrow">依風險分數排序，顯示前 100 筆</p>
+            <h3>管制項目明細</h3>
           </div>
         </div>
         <div class="table-wrap">
@@ -173,10 +164,11 @@
               <tr>
                 <th>月份</th>
                 <th>廠區</th>
-                <th>模組</th>
-                <th>查核項目</th>
+                <th>危害</th>
+                <th>指標</th>
+                <th>項目</th>
                 <th>查核數</th>
-                <th>缺失數</th>
+                <th>缺失</th>
                 <th>重大</th>
                 <th>未結案</th>
                 <th>合格率</th>
