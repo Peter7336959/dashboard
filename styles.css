@@ -195,7 +195,7 @@ main {
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
   gap: 14px;
   padding: 16px;
   border-radius: 8px;
@@ -321,9 +321,9 @@ canvas {
   display: block;
 }
 
-.hazard-bars,
-.contractor-list,
-.zero-hours {
+.status-bars,
+.plant-risk-list,
+.module-grid {
   display: grid;
   gap: 12px;
 }
@@ -334,8 +334,7 @@ canvas {
 }
 
 .bar-meta,
-.list-row,
-.zero-row {
+.risk-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -366,20 +365,99 @@ canvas {
   background: var(--blue);
 }
 
-.list-row,
-.zero-row {
+.bar-fill.d {
+  background: #6b7280;
+}
+
+.risk-row {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
 }
 
-.list-row:last-child,
-.zero-row:last-child {
+.risk-row:last-child {
   border-bottom: 0;
 }
 
-.list-row strong,
-.zero-row strong {
+.risk-row strong {
   white-space: nowrap;
+}
+
+.risk-meter {
+  flex: 1;
+  min-width: 90px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.risk-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--amber), var(--red));
+}
+
+.module-grid {
+  grid-template-columns: repeat(5, minmax(180px, 1fr));
+}
+
+.module-card {
+  min-height: 132px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+  display: grid;
+  align-content: space-between;
+  gap: 10px;
+  border-left: 5px solid var(--green);
+}
+
+.module-card span {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.module-card strong {
+  font-size: 30px;
+}
+
+.module-card small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.module-card.warn {
+  border-left-color: var(--amber);
+}
+
+.module-card.bad {
+  border-left-color: var(--red);
+}
+
+.risk-badge {
+  display: inline-grid;
+  min-width: 36px;
+  min-height: 26px;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 800;
+}
+
+.risk-badge.高 {
+  background: var(--red);
+}
+
+.risk-badge.中 {
+  background: var(--amber);
+}
+
+.risk-badge.低 {
+  background: var(--green);
 }
 
 .meta-text {
@@ -431,7 +509,8 @@ th {
   }
 
   .filters,
-  .summary-grid {
+  .summary-grid,
+  .module-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -454,6 +533,7 @@ th {
 
   .filters,
   .summary-grid,
+  .module-grid,
   nav {
     grid-template-columns: 1fr;
   }
