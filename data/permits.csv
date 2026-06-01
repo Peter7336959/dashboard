@@ -1,0 +1,5 @@
+﻿permit_number,contractor_name,work_type,risk_level,location,start_datetime,end_datetime,status
+P-2026001,甲營造,動火作業,高,廠區A,2026/6/1 08:00,2026/6/10 17:00,approved
+P-2026002,乙工程,高架作業,中,廠區B,2026/6/5 09:00,2026/6/15 18:00,approved
+P-2026003,丙公司,侷限空間,高,槽體C,2026/6/10 10:00,2026/6/12 16:00,pending
+P-2026004,甲營造,動火作業,高,廠區D,2026/5/20 08:00,2026/5/25 17:00,expired

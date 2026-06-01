@@ -1,0 +1,16 @@
+project:
+  type: default
+  output-dir: docs
+
+execute:
+  freeze: auto
+
+format:
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    toc: true
+    toc-depth: 2
+    code-link: true
+    df-print: paged

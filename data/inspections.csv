@@ -1,0 +1,5 @@
+﻿inspection_date,location,defect_type,severity,is_closed,contractor_name
+2026/5/1,工地A,墜落防護,高,FALSE,甲營造
+2026/5/5,工廠B,電氣安全,中,TRUE,
+2026/5/10,工地A,防火措施,高,FALSE,乙工程
+2026/5/15,辦公室,滅火器失效,低,TRUE,

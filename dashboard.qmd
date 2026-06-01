@@ -1,0 +1,352 @@
+---
+title: "職業安全衛生儀表板"
+format:
+  html:
+    theme: flatly
+    toc: true
+    code-fold: true
+    embed-resources: true
+editor: source
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse)
+library(lubridate)
+library(DT)
+library(plotly)
+library(bslib)
+
+# 設定今天日期（確保是 Date 格式）
+today <- ymd("2026-06-01")
+
+# 讀取 CSV 資料（包含錯誤處理）
+if(file.exists("data/incidents.csv")) {
+  incidents <- read_csv("data/incidents.csv", show_col_types = FALSE)
+} else {
+  incidents <- tibble(
+    incident_date = ymd(c("2026-01-15", "2026-02-10", "2026-03-05", "2026-04-20", "2026-05-12")),
+    incident_type = c("失能傷害", "輕傷", "虛驚事件", "失能傷害", "輕傷"),
+    department = c("製造部", "維修部", "製造部", NA, "廠務部"),
+    contractor_name = c(NA, NA, NA, "甲營造", NA),
+    lost_days = c(5, 0, 0, 3, 1),
+    restricted_days = c(0, 0, 0, 2, 0)
+  )
+}
+
+if(file.exists("data/inspections.csv")) {
+  inspections <- read_csv("data/inspections.csv", show_col_types = FALSE)
+} else {
+  inspections <- tibble(
+    inspection_date = ymd(c("2026-05-01", "2026-05-05", "2026-05-10", "2026-05-15")),
+    location = c("工地A", "工廠B", "工地A", "辦公室"),
+    defect_type = c("墜落防護", "電氣安全", "防火措施", "滅火器失效"),
+    severity = c("高", "中", "高", "低"),
+    is_closed = c(FALSE, TRUE, FALSE, TRUE),
+    contractor_name = c("甲營造", NA, "乙工程", NA)
+  )
+}
+
+if(file.exists("data/contractors.csv")) {
+  contractors <- read_csv("data/contractors.csv", show_col_types = FALSE)
+} else {
+  contractors <- tibble(
+    contractor_name = c("甲營造", "乙工程", "丙公司"),
+    uniform_number = c("12345678", "87654321", "11223344"),
+    contact_person = c("王大明", "李小華", "張三"),
+    phone = c("0912345678", "0923456789", "0934567890"),
+    is_active = c(TRUE, TRUE, TRUE)
+  )
+}
+
+if(file.exists("data/permits.csv")) {
+  permits <- read_csv("data/permits.csv", show_col_types = FALSE)
+  # 確保日期欄位是正確格式
+  if("start_datetime" %in% names(permits)) {
+    permits <- permits %>%
+      mutate(
+        start_datetime = ymd_hms(start_datetime),
+        end_datetime = ymd_hms(end_datetime)
+      )
+  }
+} else {
+  permits <- tibble(
+    permit_number = c("P-2026001", "P-2026002", "P-2026003", "P-2026004"),
+    contractor_name = c("甲營造", "乙工程", "丙公司", "甲營造"),
+    work_type = c("動火作業", "高架作業", "侷限空間", "動火作業"),
+    risk_level = c("高", "中", "高", "高"),
+    location = c("廠區A", "廠區B", "槽體C", "廠區D"),
+    start_datetime = ymd_hms(c("2026-06-01 08:00:00", "2026-06-05 09:00:00", "2026-06-10 10:00:00", "2026-05-20 08:00:00")),
+    end_datetime = ymd_hms(c("2026-06-10 17:00:00", "2026-06-15 18:00:00", "2026-06-12 16:00:00", "2026-05-25 17:00:00")),
+    status = c("approved", "approved", "pending", "expired")
+  )
+}
+
+# 確保 incident_date 是 Date 格式
+incidents <- incidents %>%
+  mutate(incident_date = ymd(incident_date))
+
+inspections <- inspections %>%
+  mutate(inspection_date = ymd(inspection_date))
+
+# 確認資料讀取成功
+cat("資料讀取成功！\n")
+cat(" incidents:", nrow(incidents), "筆\n")
+cat(" inspections:", nrow(inspections), "筆\n")
+cat(" contractors:", nrow(contractors), "筆\n")
+cat(" permits:", nrow(permits), "筆\n")
+```
+
+## 績效指標摘要 {.tabset}
+
+### 關鍵指標卡片
+
+```{r}
+#| label: kpi-cards
+#| column: screen-inset
+
+# 計算安全天數（從最後一次事故到今天）
+# 確保日期格式正確再進行計算
+if(nrow(incidents) > 0) {
+  last_incident <- max(incidents$incident_date, na.rm = TRUE)
+  total_safe_days <- as.numeric(difftime(today, last_incident, units = "days"))
+  total_safe_days <- max(0, total_safe_days)  # 確保不為負數
+} else {
+  total_safe_days <- 0
+}
+
+# 計算今年失能傷害次數
+current_year <- year(today)
+
+disabling_incidents <- incidents %>%
+  filter(incident_type == "失能傷害", year(incident_date) == current_year) %>%
+  nrow()
+
+# 假設每月總工時 200,000 小時
+monthly_hours <- 200000
+if(disabling_incidents > 0) {
+  current_fr <- round(disabling_incidents * 1000000 / (monthly_hours * month(today)), 1)
+} else {
+  current_fr <- 0
+}
+
+# 未結案缺失數
+open_defects <- inspections %>% filter(is_closed == FALSE) %>% nrow()
+
+# 有效許可證數
+active_permits <- permits %>% 
+  filter(status == "approved", end_datetime > today) %>% 
+  nrow()
+
+# 使用卡片顯示
+layout_columns(
+  value_box(
+    title = "累計安全天數",
+    value = total_safe_days,
+    showcase = bsicons::bs_icon("calendar-check"),
+    theme = "primary"
+  ),
+  value_box(
+    title = "失能傷害頻率 (FR)",
+    value = paste0(current_fr, " (次/百萬工時)"),
+    showcase = bsicons::bs_icon("graph-up"),
+    theme = "secondary"
+  ),
+  value_box(
+    title = "未結案缺失",
+    value = open_defects,
+    showcase = bsicons::bs_icon("exclamation-triangle"),
+    theme = "danger"
+  ),
+  value_box(
+    title = "有效許可證",
+    value = active_permits,
+    showcase = bsicons::bs_icon("file-check"),
+    theme = "success"
+  ),
+  col_widths = c(3, 3, 3, 3)
+)
+```
+
+### 事故趨勢圖
+
+```{r}
+#| label: incident-trend
+#| fig-width: 10
+#| fig-height: 5
+
+if(nrow(incidents) > 0) {
+  # 先建立月份欄位
+  incidents_with_month <- incidents %>%
+    mutate(
+      month = floor_date(incident_date, "month")
+    ) %>%
+    count(month, incident_type, .drop = FALSE) %>%
+    complete(month = seq(min(month), max(month), by = "month"), 
+             incident_type = unique(incident_type), 
+             fill = list(n = 0))
+  
+  ggplot(incidents_with_month, aes(x = month, y = n, color = incident_type)) +
+    geom_line(linewidth = 1.2) +
+    geom_point(size = 3) +
+    labs(title = "事故/事件趨勢", x = "月份", y = "次數") +
+    theme_minimal() +
+    scale_color_manual(values = c("失能傷害" = "red", "輕傷" = "orange", "虛驚事件" = "blue"))
+} else {
+  ggplot() + 
+    annotate("text", x = 0.5, y = 0.5, label = "無事故資料") +
+    theme_void()
+}
+```
+
+### 缺失類型排行
+
+```{r}
+#| label: defect-ranking
+#| fig-width: 8
+#| fig-height: 5
+
+if(nrow(inspections) > 0) {
+  defect_summary <- inspections %>%
+    filter(!is.na(defect_type)) %>%
+    count(defect_type, sort = TRUE) %>%
+    head(6)
+  
+  ggplot(defect_summary, aes(x = reorder(defect_type, n), y = n, fill = defect_type)) +
+    geom_col() +
+    coord_flip() +
+    labs(title = "缺失類型排行", x = "", y = "次數") +
+    theme_minimal() +
+    guides(fill = "none")
+} else {
+  ggplot() + 
+    annotate("text", x = 0.5, y = 0.5, label = "無缺失資料") +
+    theme_void()
+}
+```
+
+## 承攬商工作許可證管理 {.tabset}
+
+### 許可證總覽表
+
+```{r}
+#| label: permit-table
+#| fig-width: 12
+
+# 確保日期格式正確
+permits_table <- permits %>%
+  mutate(
+    end_date = as_date(end_datetime),
+    days_left = as.numeric(difftime(end_date, today, units = "days")),
+    status_display = case_when(
+      status == "expired" ~ "⚠️ 已過期",
+      days_left < 0 ~ "⚠️ 已過期",
+      days_left <= 3 ~ "🔴 即將到期",
+      days_left <= 7 ~ "🟡 即將到期",
+      status == "pending" ~ "⏳ 審核中",
+      status == "approved" & days_left > 0 ~ "✅ 有效",
+      TRUE ~ status
+    )
+  ) %>%
+  select(許可證編號 = permit_number, 
+         承攬商 = contractor_name,
+         作業類型 = work_type, 
+         風險 = risk_level, 
+         地點 = location,
+         結束日期 = end_date, 
+         剩餘天數 = days_left, 
+         狀態 = status_display)
+
+datatable(permits_table, 
+          options = list(
+            pageLength = 10, 
+            dom = 'Bfrtip',
+            buttons = c('copy', 'csv', 'excel')
+          ),
+          rownames = FALSE) %>%
+  formatStyle("風險", 
+              backgroundColor = styleEqual(
+                c("高", "中", "低"), 
+                c("#ffcccc", "#ffffcc", "#ccffcc")
+              )) %>%
+  formatStyle("剩餘天數",
+              color = styleInterval(c(0, 3), c("red", "orange", "black")),
+              backgroundColor = styleInterval(c(0), c("#ffeeee", "white")))
+```
+
+### 即將到期許可證提醒
+
+```{r}
+#| label: expiring-soon
+
+expiring <- permits_table %>%
+  filter(剩餘天數 >= 0, 剩餘天數 <= 7) %>%
+  arrange(剩餘天數)
+
+if(nrow(expiring) > 0) {
+  cat("### ⚠️ 下列許可證將在 7 天內到期\n\n")
+  print(knitr::kable(expiring, format = "html", caption = "即將到期許可證清單"))
+} else {
+  cat("✅ 目前無即將到期之許可證\n")
+}
+```
+
+### 承攬商清單
+
+```{r}
+#| label: contractor-list
+
+contractors_display <- contractors %>%
+  mutate(合作狀態 = ifelse(is_active, "🟢 合作中", "🔴 暫停")) %>%
+  select(承攬商名稱 = contractor_name, 
+         統一編號 = uniform_number,
+         聯絡人 = contact_person, 
+         電話 = phone, 
+         狀態 = 合作狀態)
+
+datatable(contractors_display, 
+          rownames = FALSE, 
+          options = list(pageLength = 5, dom = 't'))
+```
+
+### 申請審核
+
+```{r}
+#| label: pending-approval
+
+pending_permits <- permits %>%
+  filter(status == "pending") %>%
+  mutate(申請日期 = as_date(start_datetime)) %>%
+  select(申請編號 = permit_number, 
+         承攬商 = contractor_name,
+         作業類型 = work_type, 
+         風險 = risk_level, 
+         申請日期)
+
+if(nrow(pending_permits) > 0) {
+  cat("### 📋 待審核申請\n\n")
+  print(knitr::kable(pending_permits, format = "html"))
+  cat("\n\n> 💡 提示：點擊下方按鈕可進行審核（需串接後端 API）\n")
+} else {
+  cat("✅ 目前無待審核申請\n")
+}
+```
+
+## 附錄：原始資料
+
+```{r}
+#| label: raw-data
+#| eval: true
+#| echo: false
+
+cat("### 事故紀錄\n")
+datatable(incidents, options = list(pageLength = 5))
+
+cat("### 巡檢缺失\n")
+datatable(inspections, options = list(pageLength = 5))
+
+cat("### 許可證資料\n")
+datatable(permits, options = list(pageLength = 5))
+```
