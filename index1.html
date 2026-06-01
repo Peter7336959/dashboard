@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中油承攬作業許可證高階主管 Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cpc: {
+                            light: '#00A896',
+                            DEFAULT: '#028090',
+                            dark: '#02c39a',
+                            bgDark: '#0b132b',
+                            cardDark: '#1c2541'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- ApexCharts for Premium Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-[#0b1220] text-gray-800 dark:text-gray-100 min-h-screen font-sans transition-colors duration-300">
+
+    <!-- Toast Notification Container -->
+    <div id="notification-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
+
+    <!-- App Container -->
+    <div class="flex flex-col min-h-screen">
+        
+        <!-- Header Section -->
+        <header class="sticky top-0 z-40 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-6 py-4 transition-colors duration-300">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-tr from-cyan-500 to-emerald-400 p-2.5 rounded-xl shadow-lg shadow-cyan-500/20">
+                        <i class="fa-solid fa-shield-halved text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold tracking-tight bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-400 bg-clip-text text-transparent">
+                            中油安全承攬作業高階主管智慧決策儀表板
+                        </h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">CPC Contractor HSE & Permit Intelligent Executive Cockpit</p>
+                    </div>
+                </div>
+
+                <!-- Theme and Time controls -->
+                <div class="flex items-center justify-between md:justify-end gap-4">
+                    <div class="text-right hidden xl:block">
+                        <span class="text-xs text-gray-400 dark:text-gray-500 block">數據更新時間</span>
+                        <span id="current-time-badge" class="text-sm font-medium font-mono text-cyan-600 dark:text-cyan-400">2026-06-01 21:11:30</span>
+                    </div>
+                    <button id="theme-toggle" class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+                        <i class="fa-solid fa-moon dark:hidden text-lg"></i>
+                        <i class="fa-solid fa-sun hidden dark:block text-lg text-amber-400"></i>
+                    </button>
+                    <button id="refresh-data" class="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-medium rounded-xl shadow-lg shadow-cyan-600/10 transition-all text-sm">
+                        <i class="fa-solid fa-arrows-rotate"></i> 重整仿真數據
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow p-4 md:p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+            
+            <!-- Dynamic Data File Upload Zone -->
+            <section class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-xl">
+                            <i class="fa-solid fa-file-import text-xl animate-pulse"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-sm sm:text-base font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                                真實數據載入控制台 <span class="px-2 py-0.5 text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-full font-normal">支援 drag & drop</span>
+                            </h2>
+                            <p class="text-xs text-gray-400 mt-0.5">儀表板已為您預載 2023 - 2026 高仿真大數據。您可以隨時拖放您本地的真實中油 CSV 檔進行 100% 即時解析！</p>
+                        </div>
+                    </div>
+                    <!-- Dropzone / Input Button -->
+                    <div class="w-full md:w-auto flex flex-wrap items-center gap-3">
+                        <label for="csv-file-input" class="flex-grow md:flex-grow-0 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-cyan-500/10 to-teal-500/10 hover:from-cyan-500/20 hover:to-teal-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 hover:border-cyan-500/30 rounded-xl text-xs font-semibold cursor-pointer transition-all">
+                            <i class="fa-solid fa-cloud-arrow-up text-base"></i> 選擇您本地的 CSV 檔案
+                            <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+                        </label>
+                        <button id="btn-reset-data" class="flex-grow md:flex-grow-0 text-xs px-4 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-xl border border-gray-200 dark:border-gray-800 transition-colors font-medium">
+                            重設回系統數據
+                        </button>
+                    </div>
+                </div>
+                <!-- Drag and drop zone overlay -->
+                <div id="drop-zone" class="mt-4 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-cyan-500/50 dark:hover:border-cyan-500/50 rounded-xl p-4 text-center text-xs text-gray-400 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 bg-gray-50/40 dark:bg-gray-900/10">
+                    <span id="drop-zone-text" class="flex items-center gap-2"><i class="fa-solid fa-arrow-down-to-bracket text-lg"></i>拖曳「中油承攬作業許可證篩選結果_2500筆.csv」到此處釋放，即刻載入真實大數據</span>
+                </div>
+            </section>
+
+            <!-- Filters & Interactive Slider Panel -->
+            <section class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 md:p-6 shadow-sm">
+                <div class="flex flex-col lg:flex-row gap-6 items-center justify-between">
+                    
+                    <!-- Interactive Slider (Year) -->
+                    <div class="w-full lg:w-5/12 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-semibold tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                <i class="fa-solid fa-calendar-check text-cyan-500"></i> 年度數據軸 (拖曳切換)
+                            </label>
+                            <span id="year-indicator" class="px-3 py-1 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold font-mono rounded-full text-base border border-cyan-500/20">
+                                2026年
+                            </span>
+                        </div>
+                        <div class="relative pt-1">
+                            <input 
+                                type="range" 
+                                id="year-slider" 
+                                min="2023" 
+                                max="2026" 
+                                value="2026" 
+                                step="1"
+                                class="w-full h-2.5 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 focus:outline-none"
+                            >
+                            <div class="flex justify-between text-xs font-mono font-bold text-gray-400 dark:text-gray-500 px-1 mt-2" id="slider-labels">
+                                <span>2023</span>
+                                <span>2024</span>
+                                <span>2025</span>
+                                <span class="text-cyan-500 dark:text-cyan-400">2026 (本期)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Month Buttons Selector -->
+                    <div class="w-full lg:w-7/12 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-semibold tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                <i class="fa-solid fa-filter text-teal-500"></i> 月份細部篩選 (可複選 / 單選)
+                            </label>
+                            <div class="flex gap-2">
+                                <button id="btn-all-months" class="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors">
+                                    全選
+                                </button>
+                                <button id="btn-clear-months" class="text-xs px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors">
+                                    清除
+                                </button>
+                            </div>
+                        </div>
+                        <div id="month-selector-grid" class="grid grid-cols-6 sm:grid-cols-12 gap-2">
+                            <!-- Months injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KPI Cards Grid -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                
+                <!-- KPI 1: Peak Contractors & Workers -->
+                <div class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 hover:border-cyan-500/30 transition-all rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">高峰月承攬商 / 人數</p>
+                            <h3 class="text-2xl font-bold font-mono tracking-tight text-gray-900 dark:text-white" id="kpi-contractors">
+                                -- <span class="text-xs font-normal text-gray-500">家</span>
+                            </h3>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400" id="kpi-contractors-sub">
+                                最大單月作業: -- 人
+                            </p>
+                        </div>
+                        <div class="p-3 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-xl">
+                            <i class="fa-solid fa-building-user text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between text-xs border-t border-gray-100 dark:border-gray-800/80 pt-3">
+                        <span class="text-gray-400">當期總計施工</span>
+                        <span id="kpi-total-workers" class="font-bold text-cyan-500 font-mono">-- 人</span>
+                    </div>
+                </div>
+
+                <!-- KPI 2: Max A-Grade Work -->
+                <div class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 hover:border-emerald-500/30 transition-all rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">高峰月 A級作業件數</p>
+                            <h3 class="text-2xl font-bold font-mono tracking-tight text-gray-900 dark:text-white" id="kpi-max-a">
+                                -- <span class="text-xs font-normal text-gray-500">件</span>
+                            </h3>
+                            <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1" id="kpi-max-a-sub">
+                                <i class="fa-solid fa-triangle-exclamation"></i> 高危險作業管理
+                            </p>
+                        </div>
+                        <div class="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                            <i class="fa-solid fa-bolt text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between text-xs border-t border-gray-100 dark:border-gray-800/80 pt-3">
+                        <span class="text-gray-400">A級作業累計佔比</span>
+                        <span id="kpi-a-ratio" class="font-bold text-emerald-500 font-mono">-- %</span>
+                    </div>
+                </div>
+
+                <!-- KPI 3: Max Permits -->
+                <div class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 hover:border-purple-500/30 transition-all rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-purple-500/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">高峰月許可證數</p>
+                            <h3 class="text-2xl font-bold font-mono tracking-tight text-gray-900 dark:text-white" id="kpi-max-permits">
+                                -- <span class="text-xs font-normal text-gray-500">張</span>
+                            </h3>
+                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400" id="kpi-max-permits-sub">
+                                發生於 -- 月
+                            </p>
+                        </div>
+                        <div class="p-3 bg-purple-50/10 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl">
+                            <i class="fa-solid fa-file-signature text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between text-xs border-t border-gray-100 dark:border-gray-800/80 pt-3">
+                        <span class="text-gray-400">年度許可證總計</span>
+                        <span id="kpi-total-permits" class="font-bold text-purple-500 font-mono">-- 張</span>
+                    </div>
+                </div>
+
+                <!-- KPI 4: Confined Space Operations -->
+                <div class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 hover:border-amber-500/30 transition-all rounded-2xl p-5 shadow-sm relative overflow-hidden group">
+                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">局限空間作業次數</p>
+                            <h3 class="text-2xl font-bold font-mono tracking-tight text-gray-900 dark:text-white" id="kpi-confined">
+                                -- <span class="text-xs font-normal text-gray-500">次</span>
+                            </h3>
+                            <p class="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                <i class="fa-solid fa-circle-exclamation animate-pulse"></i> 重點安全列管
+                            </p>
+                        </div>
+                        <div class="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
+                            <i class="fa-solid fa-person-shelter text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between text-xs border-t border-gray-100 dark:border-gray-800/80 pt-3">
+                        <span class="text-gray-400">合格氣體檢測佔比</span>
+                        <span id="kpi-gas-qualified" class="font-bold text-amber-500 font-mono">100 %</span>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Charts Section 1 -->
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- ABC Grade Trend Chart -->
+                <div class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm lg:col-span-8 flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">ABC級作業趨勢分佈圖</h3>
+                            <p class="text-xs text-gray-400">當期月份內 A(高危險)、B(危險)、C(低危險) 級作業的走勢變化</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">A級高危</span>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">B級危險</span>
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">C級低危</span>
+                        </div>
+                    </div>
+                    <div id="abc-trend-chart" class="h-[320px] w-full"></div>
+                </div>
+
+                <!-- CAGR Analysis and Interactive Visualizer -->
+                <div class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm lg:col-span-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">複合年增長率 (CAGR)</h3>
+                                <p class="text-xs text-gray-400" id="cagr-base-year-label">以 2023 年為基準之安全許可證增長軌跡</p>
+                            </div>
+                            <span class="text-xs font-semibold px-2 py-0.5 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-md">年度累計</span>
+                        </div>
+                        
+                        <!-- Mini CAGR Chart -->
+                        <div id="cagr-chart" class="h-[210px] w-full"></div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800/80 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500 dark:text-gray-400 font-medium" id="cagr-start-year-label">基期許可證 (2023)</span>
+                            <span id="cagr-start-val" class="text-sm font-bold font-mono">-- 張</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">當期許可證 (<span id="cagr-end-year">--</span>)</span>
+                            <span id="cagr-end-val" class="text-sm font-bold font-mono text-cyan-500">-- 張</span>
+                        </div>
+                        <!-- Pure HTML/CSS Formula Component (Fully responsive & beautiful) -->
+                        <div class="bg-gradient-to-r from-cyan-500/10 to-teal-500/10 rounded-xl p-3 flex flex-col sm:flex-row justify-between items-center border border-cyan-500/10 gap-3">
+                            <div class="flex flex-col items-center sm:items-start">
+                                <span class="text-xs text-gray-400 font-medium block">動態複合年增長率公式</span>
+                                <div class="flex items-center text-xs font-mono font-bold text-teal-600 dark:text-teal-400 gap-1.5 mt-1">
+                                    <span>CAGR =</span>
+                                    <span class="flex items-center">
+                                        <span class="text-sm font-semibold scale-y-125">(</span>
+                                        <span class="flex flex-col items-center justify-center px-1">
+                                            <span class="border-b border-teal-500/40 pb-0.5 text-[10px] leading-none">V<sub>當期</sub></span>
+                                            <span class="pt-0.5 text-[10px] leading-none">V<sub>基準</sub></span>
+                                        </span>
+                                        <span class="text-sm font-semibold scale-y-125">)</span>
+                                    </span>
+                                    <sup class="text-[9px] -mt-2">1/n</sup>
+                                    <span>- 1</span>
+                                </div>
+                            </div>
+                            <span id="cagr-result" class="text-2xl font-black text-emerald-500 font-mono">+ --%</span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Charts Section 2 -->
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Contractor Work Ranking by Plant -->
+                <div class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm lg:col-span-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">各廠承攬商作業排名圖</h3>
+                            <p class="text-xs text-gray-400">當期承攬商派駐及安全作業量統計（前 8 強）</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="plant-select" class="bg-gray-100 dark:bg-[#1f2937] border-0 text-xs font-semibold rounded-lg px-3 py-2 text-gray-600 dark:text-gray-300 focus:ring-2 focus:ring-cyan-500 cursor-pointer">
+                                <option value="ALL">全部廠區</option>
+                                <option value="大林廠">大林廠</option>
+                                <option value="林園廠">林園廠</option>
+                                <option value="桃園廠">桃園廠</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="contractor-ranking-chart" class="h-[340px] w-full"></div>
+                </div>
+
+                <!-- Confined Space Gas Safety Cockpit -->
+                <div class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm lg:col-span-6 flex flex-col justify-between">
+                    <div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-person-shelter text-amber-500 animate-pulse"></i> 局限空間氣體安全監控儀
+                                </h3>
+                                <p class="text-xs text-gray-400">當期有局限空間作業之環境測定分佈與連續管制分析</p>
+                            </div>
+                            
+                            <!-- Chart Type Toggle (SPC vs BoxPlot) -->
+                            <div class="inline-flex rounded-xl p-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                                <button id="toggle-gas-control" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-[#1e293b] text-cyan-600 dark:text-cyan-400 shadow-sm" type="button">
+                                    📈 控制圖
+                                </button>
+                                <button id="toggle-gas-boxplot" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-500 hover:text-gray-900 dark:hover:text-white" type="button">
+                                    📦 盒鬚圖
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 4 Gas Averages Top Grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                            <!-- Oxygen -->
+                            <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-[#1f2937]/40 border border-gray-100 dark:border-gray-800 flex flex-col justify-between cursor-pointer border-l-4 border-l-emerald-500 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-all" id="gas-card-O2">
+                                <div class="flex justify-between items-center text-[10px] text-gray-400 font-semibold uppercase">
+                                    <span>氧氣 (O2)</span>
+                                    <span class="text-emerald-500">18-23%</span>
+                                </div>
+                                <div class="flex items-baseline gap-1 mt-1">
+                                    <span id="gas-o2-val" class="text-lg font-bold font-mono text-emerald-500">20.9</span>
+                                    <span class="text-[9px] text-gray-400">%</span>
+                                </div>
+                            </div>
+
+                            <!-- LEL -->
+                            <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-[#1f2937]/40 border border-gray-100 dark:border-gray-800 flex flex-col justify-between cursor-pointer border-l-4 border-l-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-all" id="gas-card-LEL">
+                                <div class="flex justify-between items-center text-[10px] text-gray-400 font-semibold uppercase">
+                                    <span>可燃氣 (LEL)</span>
+                                    <span class="text-cyan-500">&lt;10%</span>
+                                </div>
+                                <div class="flex items-baseline gap-1 mt-1">
+                                    <span id="gas-lel-val" class="text-lg font-bold font-mono text-gray-400 dark:text-gray-300">0.0</span>
+                                    <span class="text-[9px] text-gray-400">%</span>
+                                </div>
+                            </div>
+
+                            <!-- CO -->
+                            <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-[#1f2937]/40 border border-gray-100 dark:border-gray-800 flex flex-col justify-between cursor-pointer border-l-4 border-l-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-all" id="gas-card-CO">
+                                <div class="flex justify-between items-center text-[10px] text-gray-400 font-semibold uppercase">
+                                    <span>一氧化碳 (CO)</span>
+                                    <span class="text-amber-500">&lt;35ppm</span>
+                                </div>
+                                <div class="flex items-baseline gap-1 mt-1">
+                                    <span id="gas-co-val" class="text-lg font-bold font-mono text-gray-400 dark:text-gray-300">0</span>
+                                    <span class="text-[9px] text-gray-400">ppm</span>
+                                </div>
+                            </div>
+
+                            <!-- H2S -->
+                            <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-[#1f2937]/40 border border-gray-100 dark:border-gray-800 flex flex-col justify-between cursor-pointer border-l-4 border-l-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-all" id="gas-card-H2S">
+                                <div class="flex justify-between items-center text-[10px] text-gray-400 font-semibold uppercase">
+                                    <span>硫化氫 (H2S)</span>
+                                    <span class="text-red-500">&lt;10ppm</span>
+                                </div>
+                                <div class="flex items-baseline gap-1 mt-1">
+                                    <span id="gas-h2s-val" class="text-lg font-bold font-mono text-gray-400 dark:text-gray-300">0.0</span>
+                                    <span class="text-[9px] text-gray-400">ppm</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gas Analysis Interactive Chart Container -->
+                        <div id="gas-analysis-chart" class="h-[250px] w-full bg-gray-50/50 dark:bg-gray-900/10 rounded-xl border border-gray-100/50 dark:border-gray-800/40 p-2"></div>
+                    </div>
+
+                    <!-- Alert / Status Footer -->
+                    <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div class="flex items-center gap-2 text-[11px] text-gray-400">
+                            <span class="inline-block w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                            <span>觀測標的: <span id="current-gas-label" class="font-bold text-gray-950 dark:text-white">氧氣 (O2)</span></span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 bg-gray-50 dark:bg-gray-800 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-700">
+                            💡 點擊上方氣體卡片切換觀測標的
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Data Explorer Table -->
+            <section class="bg-white dark:bg-[#111827] border border-gray-100 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">高階許可證作業總覽數據表</h3>
+                        <p class="text-xs text-gray-400">即時篩選、搜尋、並進行安全細項導出</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-64">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input 
+                                type="text" 
+                                id="search-input" 
+                                placeholder="搜尋承攬商、工單內容、轄區或編號..." 
+                                class="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-[#1f2937] border-0 rounded-xl text-sm focus:ring-2 focus:ring-cyan-500 text-gray-700 dark:text-gray-100 placeholder-gray-400"
+                            >
+                        </div>
+                        <button id="btn-export" class="flex items-center gap-1.5 px-4 py-2 bg-gray-100 dark:bg-[#1f2937] hover:bg-gray-200 dark:hover:bg-[#374151] rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-300 transition-colors w-full sm:w-auto justify-center">
+                            <i class="fa-solid fa-file-csv text-base"></i> 導出 CSV 報表
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar border border-gray-100 dark:border-gray-800 rounded-xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-gray-800/40 text-xs font-bold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
+                                <th class="px-5 py-4">許可證編號</th>
+                                <th class="px-5 py-4">申請時間</th>
+                                <th class="px-5 py-4">廠區</th>
+                                <th class="px-5 py-4">承攬商名稱</th>
+                                <th class="px-5 py-4">分級</th>
+                                <th class="px-5 py-4">施工人數</th>
+                                <th class="px-5 py-4">施工地點與檢點屬性</th>
+                                <th class="px-5 py-4">監造部門 / 負責人</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-gray-100 dark:divide-gray-800/60 text-sm">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table Pagination -->
+                <div class="flex items-center justify-between mt-4">
+                    <p class="text-xs text-gray-400" id="table-info">
+                        顯示第 -- 到 -- 筆，共 -- 筆紀錄
+                    </p>
+                    <div class="flex items-center gap-1.5">
+                        <button id="btn-prev-page" class="p-2 bg-gray-50 dark:bg-[#1f2937] hover:bg-gray-100 dark:hover:bg-[#374151] rounded-lg disabled:opacity-50 text-gray-600 dark:text-gray-400">
+                            <i class="fa-solid fa-chevron-left text-xs"></i>
+                        </button>
+                        <span id="page-indicator" class="text-xs font-bold text-cyan-500 font-mono">1</span>
+                        <button id="btn-next-page" class="p-2 bg-gray-50 dark:bg-[#1f2937] hover:bg-gray-100 dark:hover:bg-[#374151] rounded-lg disabled:opacity-50 text-gray-600 dark:text-gray-400">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white dark:bg-[#111827] border-t border-gray-100 dark:border-gray-800 py-6 text-center text-xs text-gray-400 dark:text-gray-500 mt-12">
+            <p>© 2026 台灣中油股份有限公司 - 承攬作業安全管理暨工安大數據智慧儀表系統. All Rights Reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        // High fidelity generator database (matches all headers of "中油承攬作業許可證篩選結果_2500筆.csv")
+        const contractorsList = ["鼎台營造", "晉品工程有限公司", "盛大管道工程", "中鼎工程股份有限公司", "茂勝工程行", "永大起重公司", "信昌化學工程", "台塑建工", "欣高瓦斯工程", "遠東營造"];
+        const plantsList = ["大林廠", "林園廠", "桃園廠", "台中廠"];
+        const departments = ["第一烷化工場", "第二氫氣工場", "重油脫硫工場", "第六蒸餾工場", "第一氫氣工場", "硫磺回收工場", "液化瓦斯儲槽", "卸收碼頭儲區"];
+        const supervisions = ["大林營繕課", "大林機械課", "大林修護課", "台中運轉課", "工務組修護課", "管線工程課"];
+        const attributesList = [
+            "開挖作業", "高架作業 保溫", "動火:砂輪機電剪", "電器檢修", "非動火:高處作業", 
+            "■油氣管線拆修", "■附加作業:吊裝", "局限空間作業 ■通風", "局限空間罐底清理", "高空塔槽配管"
+        ];
+        const contentList = [
+            "周邊排洪排水溝疏濬除淤泥", "管廊高空鋼梁防蝕油漆", "儲槽外防液堤外側施工", "電纜線槽清理與配線安全維護",
+            "反應器高空塔槽檢修作業", "馬達與高壓安全閥更換施工", "變電所高壓絕緣安全檢點", "高壓儲槽置放管綫重型吊裝",
+            "LPG儲罐TK-301底安全閥除鏽", "配管高空吊裝焊接施工", "酸泥處置區旁通閥門更換"
+        ];
+        const supervisors = ["王志誠(督導)", "黃志祥(課長)", "陳建宏(專員)", "李昆泰(監工)", "林國華(課長)", "張志明(工程師)", "黃明桔"];
+        const safetyOfficers = ["蘇郁婷(安衛)", "洪麗萍(工安)", "郭建志(安衛)", "蔡佳蓉(工安)", "陳俊男(工安)"];
+
+        const rawPermitsData = [];
+        let availableYears = [2023, 2024, 2025, 2026];
+
+        // Fill dynamic simulated permits covering 2023-2026 with high fidelity variations
+        function generatePermits() {
+            rawPermitsData.length = 0;
+            let permitCounter = 10000;
+            
+            for (let year = 2023; year <= 2026; year++) {
+                const yearlyPermitCount = year === 2023 ? 320 : year === 2024 ? 410 : year === 2025 ? 520 : 650;
+                
+                for (let idx = 0; idx < yearlyPermitCount; idx++) {
+                    permitCounter++;
+                    const month = Math.floor(Math.random() * 12) + 1;
+                    const day = Math.floor(Math.random() * 28) + 1;
+                    const hour = Math.floor(Math.random() * 14) + 8;
+                    const min = Math.floor(Math.random() * 60);
+                    
+                    const monthStr = month < 10 ? '0' + month : '' + month;
+                    const dayStr = day < 10 ? '0' + day : '' + day;
+                    const hourStr = hour < 10 ? '0' + hour : '' + hour;
+                    const minStr = min < 10 ? '0' + min : '' + min;
+
+                    const dateStr = `${year}-${monthStr}-${dayStr}`;
+                    const timeStr = `${dateStr} ${hourStr}:${minStr}`;
+                    
+                    const gradeRand = Math.random();
+                    let grade = "C級(低危險作業)";
+                    if (gradeRand < 0.18) grade = "A級(高危險作業)";
+                    else if (gradeRand < 0.55) grade = "B級(危險作業)";
+
+                    const contractor = contractorsList[Math.floor(Math.random() * contractorsList.length)];
+                    const plant = plantsList[Math.floor(Math.random() * plantsList.length)];
+                    const dept = departments[Math.floor(Math.random() * departments.length)];
+                    const sup = supervisions[Math.floor(Math.random() * supervisions.length)];
+                    const attr = attributesList[Math.floor(Math.random() * attributesList.length)];
+                    const content = contentList[Math.floor(Math.random() * contentList.length)];
+                    const supLeader = supervisors[Math.floor(Math.random() * supervisors.length)];
+                    const safety = safetyOfficers[Math.floor(Math.random() * safetyOfficers.length)];
+                    
+                    const workersCount = Math.floor(Math.random() * 8) + 2;
+
+                    // Simulated high fidelity gas measurements for confined spaces
+                    const isConfined = attr.includes("局限");
+                    let o2 = "20.9";
+                    let lel = "0.0";
+                    let co = 0;
+                    let h2s = "0.0";
+
+                    if (isConfined) {
+                        const rand = Math.random();
+                        if (rand < 0.05) {
+                            o2 = (18.8 + Math.random() * 0.8).toFixed(1); // Near alarm
+                        } else if (rand < 0.15) {
+                            o2 = (19.6 + Math.random() * 0.7).toFixed(1);
+                        } else {
+                            o2 = (20.3 + Math.random() * 0.6).toFixed(1);
+                        }
+
+                        const randLel = Math.random();
+                        if (randLel < 0.04) {
+                            lel = (5.0 + Math.random() * 4.0).toFixed(1); // Warning limits
+                        } else if (randLel < 0.15) {
+                            lel = (1.5 + Math.random() * 2.5).toFixed(1);
+                        } else {
+                            lel = (0.0 + Math.random() * 1.0).toFixed(1);
+                        }
+
+                        const randCo = Math.random();
+                        if (randCo < 0.03) {
+                            co = Math.floor(20 + Math.random() * 12);
+                        } else if (randCo < 0.20) {
+                            co = Math.floor(5 + Math.random() * 10);
+                        } else {
+                            co = Math.floor(0 + Math.random() * 4);
+                        }
+
+                        const randH2s = Math.random();
+                        if (randH2s < 0.03) {
+                            h2s = (6.0 + Math.random() * 3.5).toFixed(1);
+                        } else if (randH2s < 0.15) {
+                            h2s = (1.5 + Math.random() * 3.0).toFixed(1);
+                        } else {
+                            h2s = (0.0 + Math.random() * 1.0).toFixed(1);
+                        }
+                    }
+
+                    rawPermitsData.push({
+                        permitNo: `T-${year}${monthStr}${dayStr}-${permitCounter}`,
+                        applyTime: timeStr,
+                        year: year,
+                        month: month,
+                        grade: grade,
+                        plant: plant,
+                        dept: dept,
+                        supervision: sup,
+                        contractor: contractor,
+                        content: content,
+                        workersCount: workersCount,
+                        attribute: attr,
+                        o2: parseFloat(o2),
+                        lel: parseFloat(lel),
+                        co: parseFloat(co),
+                        h2s: parseFloat(h2s),
+                        supervisor: supLeader,
+                        safety: safety
+                    });
+                }
+            }
+        }
+
+        // Initialize state
+        const state = {
+            selectedYear: 2026,
+            selectedMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            searchQuery: '',
+            selectedPlant: 'ALL',
+            currentPage: 1,
+            pageSize: 10,
+            theme: 'dark',
+            selectedGas: 'O2',
+            gasChartType: 'control'
+        };
+
+        let abcTrendChart = null;
+        let cagrTrendChart = null;
+        let contractorChart = null;
+        let gasAnalysisChart = null;
+
+        // Custom Notification Engine
+        function showNotification(message, type = "success") {
+            const container = document.getElementById('notification-container');
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-lg border text-sm flex items-center gap-2.5 transition-all duration-300 transform translate-x-12 opacity-0 max-w-sm pointer-events-auto ${
+                type === "success" 
+                    ? "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border-emerald-100 dark:border-emerald-900" 
+                    : "bg-red-50 dark:bg-red-950/80 text-red-800 dark:text-red-200 border-red-100 dark:border-red-900"
+            }`;
+            
+            const icon = type === "success" 
+                ? '<i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>' 
+                : '<i class="fa-solid fa-circle-exclamation text-red-500 text-lg"></i>';
+                
+            toast.innerHTML = `${icon} <span class="font-medium">${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-x-12', 'opacity-0');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.add('translate-x-12', 'opacity-0');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 4000);
+        }
+
+        // Native CSV Parser
+        function parseCSV(text) {
+            const lines = [];
+            let row = [""];
+            let inQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const c = text[i];
+                const next = text[i+1];
+
+                if (c === '"') {
+                    if (inQuotes && next === '"') {
+                        row[row.length - 1] += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (c === ',') {
+                    if (inQuotes) {
+                        row[row.length - 1] += ',';
+                    } else {
+                        row.push("");
+                    }
+                } else if (c === '\r' || c === '\n') {
+                    if (inQuotes) {
+                        row[row.length - 1] += c;
+                    } else {
+                        if (c === '\r' && next === '\n') {
+                            i++;
+                        }
+                        lines.push(row);
+                        row = [""];
+                    }
+                } else {
+                    row[row.length - 1] += c;
+                }
+            }
+            if (row.length > 1 || row[0] !== "") {
+                lines.push(row);
+            }
+            return lines;
+        }
+
+        function parseAndLoadCSV(csvText) {
+            try {
+                const parsedLines = parseCSV(csvText);
+                if (parsedLines.length < 2) {
+                    showNotification("無效的 CSV 檔案或資料列數不足！", "error");
+                    return;
+                }
+
+                const headers = parsedLines[0].map(h => h.replace(/^\uFEFF/, '').replace(/^"|"$/g, '').trim());
+                
+                // Track columns
+                const idxPermit = headers.indexOf("許可證編號");
+                const idxApplyTime = headers.indexOf("申請時間");
+                const idxGrade = headers.indexOf("工程作業分級");
+                const idxPlant = headers.indexOf("廠區");
+                const idxDept = headers.indexOf("轄區部門");
+                const idxSupervision = headers.indexOf("監造部門");
+                const idxContractor = headers.indexOf("承攬商名稱");
+                const idxContent = headers.indexOf("工作內容");
+                const idxWorkers = headers.indexOf("工作人員人數");
+                const idxAttribute = headers.indexOf("許可作業檢點屬性");
+                const idxLel = headers.indexOf("可燃性氣體(LEL%)");
+                const idxO2 = headers.indexOf("氧氣(O2%)");
+                const idxCo = headers.indexOf("一氧化碳(CO ppm)");
+                const idxH2s = headers.indexOf("硫化氫(H2S ppm)");
+                const idxSupervisor = headers.indexOf("監造負責人");
+
+                if (idxPermit === -1 || idxApplyTime === -1) {
+                    showNotification("CSV 格式不相符！請確保包含「許可證編號」與「申請時間」等欄位。", "error");
+                    return;
+                }
+
+                const loadedData = [];
+                for (let i = 1; i < parsedLines.length; i++) {
+                    const row = parsedLines[i];
+                    if (row.length < headers.length || !row[idxPermit]) continue;
+
+                    const applyTimeStr = row[idxApplyTime] || '';
+                    let year = 2026;
+                    let month = 5;
+                    const dateMatch = applyTimeStr.match(/(\d{4})[-/](\d{2})[-/](\d{2})/);
+                    if (dateMatch) {
+                        year = parseInt(dateMatch[1]);
+                        month = parseInt(dateMatch[2]);
+                    }
+
+                    loadedData.push({
+                        permitNo: row[idxPermit],
+                        applyTime: applyTimeStr,
+                        year: year,
+                        month: month,
+                        grade: row[idxGrade] || "C級(低危險作業)",
+                        plant: row[idxPlant] || "其他廠區",
+                        dept: row[idxDept] || "",
+                        supervision: row[idxSupervision] || "",
+                        contractor: row[idxContractor] || "無名承攬商",
+                        content: row[idxContent] || "",
+                        workersCount: parseInt(row[idxWorkers]) || 1,
+                        attribute: row[idxAttribute] || "一般作業",
+                        o2: parseFloat(row[idxO2]) || 20.9,
+                        lel: parseFloat(row[idxLel]) || 0.0,
+                        co: parseFloat(row[idxCo]) || 0.0,
+                        h2s: parseFloat(row[idxH2s]) || 0.0,
+                        supervisor: row[idxSupervisor] || "未指定"
+                    });
+                }
+
+                if (loadedData.length === 0) {
+                    showNotification("未成功解析任何資料行！", "error");
+                    return;
+                }
+
+                // Push parsed data and re-calibrate interface
+                rawPermitsData.length = 0;
+                rawPermitsData.push(...loadedData);
+
+                const parsedYears = [...new Set(rawPermitsData.map(item => item.year))].sort((a,b) => a - b);
+                if (parsedYears.length > 0) {
+                    availableYears = parsedYears;
+                    state.selectedYear = availableYears[availableYears.length - 1];
+                    
+                    const slider = document.getElementById('year-slider');
+                    slider.min = availableYears[0];
+                    slider.max = availableYears[availableYears.length - 1];
+                    slider.value = state.selectedYear;
+                    
+                    const labelsContainer = document.getElementById('slider-labels');
+                    labelsContainer.innerHTML = availableYears.map((y, idx) => {
+                        const isLatest = idx === availableYears.length - 1;
+                        return `<span class="${isLatest ? 'text-cyan-500 dark:text-cyan-400 font-bold' : ''}">${y}</span>`;
+                    }).join('');
+                    
+                    document.getElementById('year-indicator').innerText = `${state.selectedYear}年`;
+                }
+
+                // Adapt plant selectors
+                const uniquePlants = [...new Set(rawPermitsData.map(item => item.plant))].filter(Boolean);
+                const plantSelect = document.getElementById('plant-select');
+                plantSelect.innerHTML = '<option value="ALL">全部廠區</option>' + 
+                    uniquePlants.map(p => `<option value="${p}">${p}</option>`).join('');
+
+                state.currentPage = 1;
+                updateDashboard();
+
+                document.getElementById('drop-zone-text').innerHTML = `
+                    <span class="text-emerald-500 font-bold flex items-center justify-center gap-1.5 animate-bounce">
+                        <i class="fa-solid fa-circle-check text-lg"></i> 成功導入中油真實數據！計 ${loadedData.length.toLocaleString()} 筆紀錄
+                    </span>
+                `;
+                showNotification(`已即時解析並成功裝載您的 ${loadedData.length} 筆真實許可證數據！`, "success");
+
+            } catch (err) {
+                console.error(err);
+                showNotification("解析 CSV 檔案時發生結構錯誤！", "error");
+            }
+        }
+
+        function initApp() {
+            generatePermits();
+            renderMonthSelectors();
+            setupTheme();
+            setupEventListeners();
+            setupGasEventListeners();
+            updateDashboard();
+        }
+
+        function setupTheme() {
+            const toggleBtn = document.getElementById('theme-toggle');
+            
+            if (localStorage.getItem('theme') === 'light') {
+                document.documentElement.classList.remove('dark');
+                state.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                state.theme = 'dark';
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                    state.theme = 'light';
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                    state.theme = 'dark';
+                }
+                renderCharts();
+            });
+        }
+
+        function renderMonthSelectors() {
+            const container = document.getElementById('month-selector-grid');
+            container.innerHTML = '';
+            
+            for (let m = 1; m <= 12; m++) {
+                const isSelected = state.selectedMonths.includes(m);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `month-btn text-xs font-mono font-bold py-2 px-1.5 rounded-xl border transition-all ${
+                    isSelected 
+                        ? 'bg-cyan-500 text-white border-cyan-500 shadow-md shadow-cyan-500/10' 
+                        : 'bg-white dark:bg-[#1f2937] hover:bg-gray-100 dark:hover:bg-[#2d3748] border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300'
+                }`;
+                btn.innerText = `${m}月`;
+                btn.dataset.month = m;
+                
+                btn.addEventListener('click', () => {
+                    toggleMonth(m);
+                });
+                
+                container.appendChild(btn);
+            }
+        }
+
+        function toggleMonth(month) {
+            const index = state.selectedMonths.indexOf(month);
+            if (index > -1) {
+                if (state.selectedMonths.length > 1) {
+                    state.selectedMonths.splice(index, 1);
+                }
+            } else {
+                state.selectedMonths.push(month);
+            }
+            state.selectedMonths.sort((a, b) => a - b);
+            
+            renderMonthSelectors();
+            state.currentPage = 1;
+            updateDashboard();
+        }
+
+        function setupGasEventListeners() {
+            ['O2', 'LEL', 'CO', 'H2S'].forEach(gas => {
+                const element = document.getElementById(`gas-card-${gas}`);
+                if (element) {
+                    element.addEventListener('click', () => {
+                        state.selectedGas = gas;
+                        updateGasCardStyles();
+                        renderGasAnalysisChart();
+                    });
+                }
+            });
+
+            const btnControl = document.getElementById('toggle-gas-control');
+            const btnBoxplot = document.getElementById('toggle-gas-boxplot');
+
+            if (btnControl && btnBoxplot) {
+                btnControl.addEventListener('click', () => {
+                    state.gasChartType = 'control';
+                    btnControl.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-[#1e293b] text-cyan-600 dark:text-cyan-400 shadow-sm";
+                    btnBoxplot.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-500 hover:text-gray-900 dark:hover:text-white";
+                    renderGasAnalysisChart();
+                });
+
+                btnBoxplot.addEventListener('click', () => {
+                    state.gasChartType = 'boxplot';
+                    btnBoxplot.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-[#1e293b] text-cyan-600 dark:text-cyan-400 shadow-sm";
+                    btnControl.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-gray-500 hover:text-gray-900 dark:hover:text-white";
+                    renderGasAnalysisChart();
+                });
+            }
+        }
+
+        function updateGasCardStyles() {
+            const gases = ['O2', 'LEL', 'CO', 'H2S'];
+            const activeColors = {
+                O2: { border: 'border-l-emerald-500', bg: 'bg-emerald-500/5 dark:bg-emerald-500/10', text: 'text-emerald-500' },
+                LEL: { border: 'border-l-cyan-500', bg: 'bg-cyan-500/5 dark:bg-cyan-500/10', text: 'text-cyan-500' },
+                CO: { border: 'border-l-amber-500', bg: 'bg-amber-500/5 dark:bg-amber-500/10', text: 'text-amber-500' },
+                H2S: { border: 'border-l-red-500', bg: 'bg-red-500/5 dark:bg-red-500/10', text: 'text-red-500' }
+            };
+
+            gases.forEach(gas => {
+                const card = document.getElementById(`gas-card-${gas}`);
+                const valSpan = document.getElementById(`gas-${gas.toLowerCase()}-val`);
+                if (!card || !valSpan) return;
+
+                // Strip off older reactive colors
+                card.className = card.className.replace(/border-l-\w+-\d+/, '').replace(/bg-\w+-\d+\/\d+/, '').replace(/dark:bg-\w+-\d+\/\d+/, '').trim();
+                valSpan.className = valSpan.className.replace(/text-\w+-\d+/, '').trim();
+
+                if (state.selectedGas === gas) {
+                    card.classList.add(activeColors[gas].border, ...activeColors[gas].bg.split(' '));
+                    valSpan.classList.add(activeColors[gas].text);
+                    card.classList.remove('border-l-gray-300', 'dark:border-l-gray-700', 'bg-gray-50', 'dark:bg-[#1f2937]/40');
+                } else {
+                    card.classList.add('border-l-gray-300', 'dark:border-l-gray-700', 'bg-gray-50', 'dark:bg-[#1f2937]/40');
+                    valSpan.classList.add('text-gray-400', 'dark:text-gray-300');
+                }
+            });
+
+            const gasFullNames = {
+                O2: '氧氣濃度 (O2)',
+                LEL: '可燃性氣體 (LEL)',
+                CO: '一氧化碳 (CO)',
+                H2S: '硫化氫 (H2S)'
+            };
+            const currentLabel = document.getElementById('current-gas-label');
+            if (currentLabel) {
+                currentLabel.innerText = gasFullNames[state.selectedGas];
+            }
+        }
+
+        // Safe mathematical percentile function
+        function getPercentile(arr, p) {
+            if (arr.length === 0) return 0;
+            if (arr.length === 1) return arr[0];
+            const index = (arr.length - 1) * p;
+            const lower = Math.floor(index);
+            const upper = lower + 1;
+            const weight = index - lower;
+            if (upper < arr.length) {
+                return arr[lower] * (1 - weight) + arr[upper] * weight;
+            }
+            return arr[lower];
+        }
+
+        function setupEventListeners() {
+            // Drag and drop processing
+            const dropZone = document.getElementById('drop-zone');
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-cyan-500', 'bg-cyan-500/5');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-cyan-500', 'bg-cyan-500/5');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-cyan-500', 'bg-cyan-500/5');
+                if (e.dataTransfer.files.length > 0) {
+                    processFile(e.dataTransfer.files[0]);
+                }
+            });
+            dropZone.addEventListener('click', () => {
+                document.getElementById('csv-file-input').click();
+            });
+
+            document.getElementById('csv-file-input').addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    processFile(e.target.files[0]);
+                }
+            });
+
+            function processFile(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    parseAndLoadCSV(e.target.result);
+                };
+                reader.readAsText(file);
+            }
+
+            // Slider Year Control
+            const slider = document.getElementById('year-slider');
+            const indicator = document.getElementById('year-indicator');
+            
+            slider.addEventListener('input', (e) => {
+                const year = parseInt(e.target.value);
+                state.selectedYear = year;
+                indicator.innerText = `${year}年`;
+                state.currentPage = 1;
+                updateDashboard();
+            });
+
+            // Month Selectors Shortcuts
+            document.getElementById('btn-all-months').addEventListener('click', () => {
+                state.selectedMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                renderMonthSelectors();
+                state.currentPage = 1;
+                updateDashboard();
+            });
+
+            document.getElementById('btn-clear-months').addEventListener('click', () => {
+                state.selectedMonths = [1]; 
+                renderMonthSelectors();
+                state.currentPage = 1;
+                updateDashboard();
+            });
+
+            // Plant Selection
+            document.getElementById('plant-select').addEventListener('change', (e) => {
+                state.selectedPlant = e.target.value;
+                state.currentPage = 1;
+                updateDashboard();
+            });
+
+            // Table live search
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                state.searchQuery = e.target.value.toLowerCase();
+                state.currentPage = 1;
+                updateDashboard();
+            });
+
+            // Refresh default data
+            document.getElementById('refresh-data').addEventListener('click', () => {
+                generatePermits();
+                updateDashboard();
+                showNotification("已重整並隨機產生一組高仿真數據！", "success");
+            });
+
+            // Reset Data Button
+            document.getElementById('btn-reset-data').addEventListener('click', () => {
+                generatePermits();
+                availableYears = [2023, 2024, 2025, 2026];
+                
+                const sl = document.getElementById('year-slider');
+                sl.min = 2023;
+                sl.max = 2026;
+                sl.value = 2026;
+                state.selectedYear = 2026;
+                
+                const labelsContainer = document.getElementById('slider-labels');
+                labelsContainer.innerHTML = `
+                    <span>2023</span>
+                    <span>2024</span>
+                    <span>2025</span>
+                    <span class="text-cyan-500 dark:text-cyan-400 font-bold">2026 (本期)</span>
+                `;
+                document.getElementById('year-indicator').innerText = '2026年';
+                
+                const plantSelect = document.getElementById('plant-select');
+                plantSelect.innerHTML = `
+                    <option value="ALL">全部廠區</option>
+                    <option value="大林廠">大林廠</option>
+                    <option value="林園廠">林園廠</option>
+                    <option value="桃園廠">桃園廠</option>
+                `;
+                state.selectedPlant = 'ALL';
+                
+                document.getElementById('drop-zone-text').innerHTML = `
+                    <i class="fa-solid fa-arrow-down-to-bracket text-lg mb-1 block"></i>拖曳「中油承攬作業許可證篩選結果_2500筆.csv」到此處釋放，即刻載入真實大數據
+                `;
+                
+                state.currentPage = 1;
+                updateDashboard();
+                showNotification("已成功重設回預設仿真多年度大數據！", "success");
+            });
+
+            // Pagination Controls
+            document.getElementById('btn-prev-page').addEventListener('click', () => {
+                if (state.currentPage > 1) {
+                    state.currentPage--;
+                    updateTable();
+                }
+            });
+
+            document.getElementById('btn-next-page').addEventListener('click', () => {
+                const filtered = getFilteredPermits();
+                const totalPages = Math.ceil(filtered.length / state.pageSize);
+                if (state.currentPage < totalPages) {
+                    state.currentPage++;
+                    updateTable();
+                }
+            });
+
+            // CSV Export
+            document.getElementById('btn-export').addEventListener('click', () => {
+                exportFilteredDataToCSV();
+            });
+        }
+
+        function getFilteredPermits() {
+            return rawPermitsData.filter(item => {
+                const yearMatch = item.year === state.selectedYear;
+                const monthMatch = state.selectedMonths.includes(item.month);
+                const plantMatch = state.selectedPlant === 'ALL' || item.plant === state.selectedPlant;
+                
+                const searchMatch = !state.searchQuery || 
+                    item.contractor.toLowerCase().includes(state.searchQuery) ||
+                    item.dept.toLowerCase().includes(state.searchQuery) ||
+                    item.content.toLowerCase().includes(state.searchQuery) ||
+                    item.permitNo.toLowerCase().includes(state.searchQuery);
+
+                return yearMatch && monthMatch && plantMatch && searchMatch;
+            });
+        }
+
+        function updateDashboard() {
+            const filtered = getFilteredPermits();
+            calculateKPIs(filtered);
+            renderCharts();
+            updateTable();
+        }
+
+        function calculateKPIs(data) {
+            const currentYearTotal = data.length;
+            const monthlyStats = {};
+            for (let m = 1; m <= 12; m++) {
+                monthlyStats[m] = {
+                    permits: 0,
+                    contractors: new Set(),
+                    workers: 0,
+                    aGrade: 0
+                };
+            }
+
+            data.forEach(item => {
+                const stats = monthlyStats[item.month];
+                if (stats) {
+                    stats.permits++;
+                    stats.contractors.add(item.contractor);
+                    stats.workers += item.workersCount;
+                    if (item.grade.startsWith("A")) {
+                        stats.aGrade++;
+                    }
+                }
+            });
+
+            let maxContractors = 0;
+            let peakWorkersInAMonth = 0;
+            let maxAGrade = 0;
+            let maxPermits = 0;
+            let maxPermitsMonth = "--";
+
+            Object.entries(monthlyStats).forEach(([m, stat]) => {
+                const contractorCount = stat.contractors.size;
+                if (contractorCount > maxContractors) {
+                    maxContractors = contractorCount;
+                }
+                if (stat.workers > peakWorkersInAMonth) {
+                    peakWorkersInAMonth = stat.workers;
+                }
+                if (stat.aGrade > maxAGrade) {
+                    maxAGrade = stat.aGrade;
+                }
+                if (stat.permits > maxPermits) {
+                    maxPermits = stat.permits;
+                    maxPermitsMonth = m;
+                }
+            });
+
+            // Output Peak Contractor & Worker Info
+            document.getElementById('kpi-contractors').innerHTML = `${maxContractors} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">家商</span>`;
+            document.getElementById('kpi-contractors-sub').innerText = `高峰單月作業人數: ${peakWorkersInAMonth} 人`;
+            
+            const totalYearlyWorkers = data.reduce((acc, curr) => acc + curr.workersCount, 0);
+            document.getElementById('kpi-total-workers').innerText = `${totalYearlyWorkers.toLocaleString()} 人`;
+
+            // Max A-grade output
+            document.getElementById('kpi-max-a').innerHTML = `${maxAGrade} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">件</span>`;
+            const aGradeTotal = data.filter(item => item.grade.startsWith("A")).length;
+            const aRatio = currentYearTotal > 0 ? ((aGradeTotal / currentYearTotal) * 100).toFixed(1) : 0;
+            document.getElementById('kpi-a-ratio').innerText = `${aRatio} %`;
+
+            // Max Permits output
+            document.getElementById('kpi-max-permits').innerHTML = `${maxPermits} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">張</span>`;
+            document.getElementById('kpi-max-permits-sub').innerText = `高峰月落在 ${maxPermitsMonth} 月`;
+            document.getElementById('kpi-total-permits').innerText = `${currentYearTotal.toLocaleString()} 張`;
+
+            // Confined space indicators
+            const confinedSpaceOperations = data.filter(item => item.attribute.includes("局限"));
+            document.getElementById('kpi-confined').innerHTML = `${confinedSpaceOperations.length} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">次</span>`;
+
+            // Dynamic Gas Gauges (O2, LEL, CO, H2S) Average Calculation
+            let o2Avg = 0, lelAvg = 0, coAvg = 0, h2sAvg = 0;
+            if (confinedSpaceOperations.length > 0) {
+                o2Avg = confinedSpaceOperations.reduce((sum, item) => sum + item.o2, 0) / confinedSpaceOperations.length;
+                lelAvg = confinedSpaceOperations.reduce((sum, item) => sum + item.lel, 0) / confinedSpaceOperations.length;
+                coAvg = confinedSpaceOperations.reduce((sum, item) => sum + item.co, 0) / confinedSpaceOperations.length;
+                h2sAvg = confinedSpaceOperations.reduce((sum, item) => sum + item.h2s, 0) / confinedSpaceOperations.length;
+            } else {
+                o2Avg = 20.9;
+                lelAvg = 0.0;
+                coAvg = 0.0;
+                h2sAvg = 0.0;
+            }
+
+            // Bind values directly to the 4 mini indicator widgets
+            document.getElementById('gas-o2-val').innerText = `${o2Avg.toFixed(1)}`;
+            document.getElementById('gas-lel-val').innerText = `${lelAvg.toFixed(1)}`;
+            document.getElementById('gas-co-val').innerText = `${Math.round(coAvg)}`;
+            document.getElementById('gas-h2s-val').innerText = `${h2sAvg.toFixed(1)}`;
+
+            // Keep indicator cards layout style perfectly updated
+            updateGasCardStyles();
+
+            // Calculate adaptive CAGR
+            calculateCAGR();
+        }
+
+        function calculateCAGR() {
+            const baseYear = availableYears[0];
+            const valBase = rawPermitsData.filter(item => item.year === baseYear).length;
+            const currentYear = state.selectedYear;
+            const valCurrent = rawPermitsData.filter(item => item.year === currentYear).length;
+
+            document.getElementById('cagr-start-val').innerText = `${valBase} 張`;
+            document.getElementById('cagr-end-val').innerText = `${valCurrent} 張`;
+            document.getElementById('cagr-end-year').innerText = `${currentYear}`;
+
+            document.getElementById('cagr-base-year-label').innerText = `以 ${baseYear} 年為基準之安全許可證增長軌跡`;
+            document.getElementById('cagr-start-year-label').innerText = `基期許可證 (${baseYear})`;
+
+            const n = currentYear - baseYear;
+            let cagrPct = 0;
+            if (n > 0 && valBase > 0) {
+                cagrPct = (Math.pow((valCurrent / valBase), 1 / n) - 1) * 100;
+            }
+
+            const prefix = cagrPct >= 0 ? '+' : '';
+            document.getElementById('cagr-result').innerText = `${prefix}${cagrPct.toFixed(1)}%`;
+        }
+
+        function renderGasAnalysisChart() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const themeMode = isDark ? 'dark' : 'light';
+            const labelColor = isDark ? '#9ca3af' : '#4b5563';
+            const gridColor = isDark ? '#1f2937' : '#f3f4f6';
+
+            const filtered = getFilteredPermits();
+            // Filter strictly to Confined Space Permit items
+            const confinedPermits = filtered.filter(item => item.attribute.includes("局限"));
+
+            const chartContainer = document.getElementById('gas-analysis-chart');
+            if (!chartContainer) return;
+
+            if (confinedPermits.length === 0) {
+                if (gasAnalysisChart) {
+                    gasAnalysisChart.destroy();
+                    gasAnalysisChart = null;
+                }
+                chartContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 space-y-2 py-12">
+                        <i class="fa-solid fa-wind text-4xl text-gray-300 dark:text-gray-600 animate-pulse"></i>
+                        <p class="text-sm font-semibold">無局限空間檢測數據</p>
+                        <p class="text-xs text-gray-400 text-center px-4">當前選定條件內無相關作業。請調整滑桿或取消月份篩選。</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort sequentially for continuous line charting
+            confinedPermits.sort((a, b) => new Date(a.applyTime) - new Date(b.applyTime));
+
+            let options = {};
+            let unit = state.selectedGas === 'O2' || state.selectedGas === 'LEL' ? '%' : ' ppm';
+            let gasLabel = state.selectedGas === 'O2' ? '氧氣 O2' : state.selectedGas === 'LEL' ? '可燃性氣體 LEL' : state.selectedGas === 'CO' ? '一氧化碳 CO' : '硫化氫 H2S';
+
+            if (state.gasChartType === 'control') {
+                // --- 1. 控制圖 (SPC Control Chart with boundary bands) ---
+                const categories = confinedPermits.map(item => item.permitNo);
+                const dataValues = confinedPermits.map(item => {
+                    if (state.selectedGas === 'O2') return item.o2;
+                    if (state.selectedGas === 'LEL') return item.lel;
+                    if (state.selectedGas === 'CO') return item.co;
+                    return item.h2s;
+                });
+
+                let yMin = 0, yMax = 100;
+                let annotationsY = [];
+
+                if (state.selectedGas === 'O2') {
+                    yMin = 15;
+                    yMax = 25;
+                    annotationsY = [
+                        {
+                            y: 18.0,
+                            borderColor: '#ef4444',
+                            strokeDashArray: 4,
+                            label: {
+                                borderColor: '#ef4444',
+                                style: { color: '#fff', background: '#ef4444', fontSize: '9px' },
+                                text: '安全下限 18.0%'
+                            }
+                        },
+                        {
+                            y: 23.0,
+                            borderColor: '#ef4444',
+                            strokeDashArray: 4,
+                            label: {
+                                borderColor: '#ef4444',
+                                style: { color: '#fff', background: '#ef4444', fontSize: '9px' },
+                                text: '安全上限 23.0%'
+                            }
+                        },
+                        {
+                            y: 20.9,
+                            borderColor: '#10b981',
+                            strokeDashArray: 2,
+                            label: {
+                                borderColor: '#10b981',
+                                style: { color: '#fff', background: '#10b981', fontSize: '9px' },
+                                text: '大氣標準 20.9%'
+                            }
+                        }
+                    ];
+                } else if (state.selectedGas === 'LEL') {
+                    yMin = 0;
+                    const maxVal = Math.max(...dataValues, 10);
+                    yMax = Math.ceil(maxVal * 1.2);
+                    annotationsY = [
+                        {
+                            y: 10.0,
+                            borderColor: '#ef4444',
+                            strokeDashArray: 4,
+                            label: {
+                                borderColor: '#ef4444',
+                                style: { color: '#fff', background: '#ef4444', fontSize: '9px' },
+                                text: '警戒值 10.0%'
+                            }
+                        }
+                    ];
+                } else if (state.selectedGas === 'CO') {
+                    yMin = 0;
+                    const maxVal = Math.max(...dataValues, 35);
+                    yMax = Math.ceil(maxVal * 1.2);
+                    annotationsY = [
+                        {
+                            y: 35.0,
+                            borderColor: '#ef4444',
+                            strokeDashArray: 4,
+                            label: {
+                                borderColor: '#ef4444',
+                                style: { color: '#fff', background: '#ef4444', fontSize: '9px' },
+                                text: '容許上限 35 ppm'
+                            }
+                        }
+                    ];
+                } else if (state.selectedGas === 'H2S') {
+                    yMin = 0;
+                    const maxVal = Math.max(...dataValues, 10);
+                    yMax = Math.ceil(maxVal * 1.2);
+                    annotationsY = [
+                        {
+                            y: 10.0,
+                            borderColor: '#ef4444',
+                            strokeDashArray: 4,
+                            label: {
+                                borderColor: '#ef4444',
+                                style: { color: '#fff', background: '#ef4444', fontSize: '9px' },
+                                text: '容許上限 10 ppm'
+                            }
+                        }
+                    ];
+                }
+
+                const chartColor = state.selectedGas === 'O2' ? '#10b981' : state.selectedGas === 'LEL' ? '#06b6d4' : state.selectedGas === 'CO' ? '#f59e0b' : '#ef4444';
+
+                options = {
+                    chart: {
+                        type: 'line',
+                        height: 240,
+                        toolbar: { show: false },
+                        background: 'transparent'
+                    },
+                    theme: { mode: themeMode },
+                    colors: [chartColor],
+                    stroke: { curve: 'smooth', width: 2.5 },
+                    markers: {
+                        size: 3.5,
+                        strokeColors: isDark ? '#111827' : '#fff',
+                        strokeWidth: 1.5,
+                        hover: { size: 5.5 }
+                    },
+                    series: [{
+                        name: gasLabel,
+                        data: dataValues
+                    }],
+                    xaxis: {
+                        categories: categories,
+                        labels: { show: false },
+                        axisTicks: { show: false },
+                        axisBorder: { show: false },
+                        title: {
+                            text: '作業申請連續時間軸 ➔',
+                            style: { color: labelColor, fontSize: '10px' }
+                        }
+                    },
+                    yaxis: {
+                        min: yMin,
+                        max: yMax,
+                        labels: {
+                            formatter: function (val) { return val.toFixed(1) + unit; },
+                            style: { colors: labelColor }
+                        }
+                    },
+                    annotations: {
+                        yaxis: annotationsY
+                    },
+                    grid: { borderColor: gridColor },
+                    tooltip: {
+                        x: {
+                            show: true,
+                            formatter: function(val, { dataPointIndex }) {
+                                const item = confinedPermits[dataPointIndex];
+                                return `編號: ${item.permitNo}<br>時間: ${item.applyTime}<br>廠區: ${item.plant}`;
+                            }
+                        },
+                        y: {
+                            formatter: function(val) { return val.toFixed(1) + unit; }
+                        }
+                    }
+                };
+
+            } else {
+                // --- 2. 盒鬚圖 (BoxPlot Distribution Chart by Plant Groups) ---
+                const plants = [...new Set(confinedPermits.map(p => p.plant))].filter(Boolean).sort();
+                const boxPlotData = [];
+
+                plants.forEach(plantName => {
+                    const plantPermits = confinedPermits.filter(p => p.plant === plantName);
+                    if (plantPermits.length === 0) return;
+
+                    const values = plantPermits.map(item => {
+                        if (state.selectedGas === 'O2') return item.o2;
+                        if (state.selectedGas === 'LEL') return item.lel;
+                        if (state.selectedGas === 'CO') return item.co;
+                        return item.h2s;
+                    }).sort((a, b) => a - b);
+
+                    if (values.length === 0) return;
+
+                    const min = values[0];
+                    const q1 = getPercentile(values, 0.25);
+                    const median = getPercentile(values, 0.50);
+                    const q3 = getPercentile(values, 0.75);
+                    const max = values[values.length - 1];
+
+                    boxPlotData.push({
+                        x: plantName,
+                        y: [min, q1, median, q3, max].map(v => parseFloat(v.toFixed(2)))
+                    });
+                });
+
+                const boxColors = state.selectedGas === 'O2' ? ['#10b981', '#34d399'] : state.selectedGas === 'LEL' ? ['#06b6d4', '#22d3ee'] : state.selectedGas === 'CO' ? ['#f59e0b', '#fbbf24'] : ['#ef4444', '#f87171'];
+
+                options = {
+                    chart: {
+                        type: 'boxPlot',
+                        height: 240,
+                        toolbar: { show: false },
+                        background: 'transparent'
+                    },
+                    theme: { mode: themeMode },
+                    colors: boxColors,
+                    series: [{
+                        name: gasLabel,
+                        data: boxPlotData
+                    }],
+                    xaxis: {
+                        labels: { style: { colors: labelColor } }
+                    },
+                    yaxis: {
+                        labels: {
+                            formatter: function (val) { return val.toFixed(1) + unit; },
+                            style: { colors: labelColor }
+                        }
+                    },
+                    grid: { borderColor: gridColor },
+                    plotOptions: {
+                        boxPlot: {
+                            colors: {
+                                upper: boxColors[0],
+                                lower: boxColors[1]
+                            }
+                        }
+                    },
+                    tooltip: {
+                        shared: false,
+                        intersect: true
+                    }
+                };
+            }
+
+            if (gasAnalysisChart) {
+                gasAnalysisChart.destroy();
+                gasAnalysisChart = null;
+            }
+
+            // Purge and mount fresh chart
+            chartContainer.innerHTML = '';
+            gasAnalysisChart = new ApexCharts(chartContainer, options);
+            gasAnalysisChart.render();
+        }
+
+        function renderCharts() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const themeMode = isDark ? 'dark' : 'light';
+            const labelColor = isDark ? '#9ca3af' : '#4b5563';
+            const gridColor = isDark ? '#1f2937' : '#f3f4f6';
+
+            const filtered = getFilteredPermits();
+
+            // --- Chart 1: ABC Trend (Area Chart) ---
+            const monthsRange = state.selectedMonths;
+            const aSeriesData = Array(12).fill(0);
+            const bSeriesData = Array(12).fill(0);
+            const cSeriesData = Array(12).fill(0);
+
+            filtered.forEach(item => {
+                if (item.grade.startsWith("A")) aSeriesData[item.month - 1]++;
+                else if (item.grade.startsWith("B")) bSeriesData[item.month - 1]++;
+                else cSeriesData[item.month - 1]++;
+            });
+
+            const finalAData = monthsRange.map(m => aSeriesData[m - 1]);
+            const finalBData = monthsRange.map(m => bSeriesData[m - 1]);
+            const finalCData = monthsRange.map(m => cSeriesData[m - 1]);
+            const finalLabels = monthsRange.map(m => `${m}月`);
+
+            const abcTrendOptions = {
+                chart: {
+                    type: 'area',
+                    height: 320,
+                    toolbar: { show: false },
+                    background: 'transparent',
+                    stacked: true
+                },
+                theme: { mode: themeMode },
+                colors: ['#ef4444', '#f59e0b', '#06b6d4'],
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 2 },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.05,
+                        stops: [0, 95, 100]
+                    }
+                },
+                series: [
+                    { name: 'A級 (高危險)', data: finalAData },
+                    { name: 'B級 (危險)', data: finalBData },
+                    { name: 'C級 (低危險)', data: finalCData }
+                ],
+                xaxis: {
+                    categories: finalLabels,
+                    labels: { style: { colors: labelColor } }
+                },
+                yaxis: {
+                    labels: { style: { colors: labelColor } }
+                },
+                grid: { borderColor: gridColor },
+                legend: { show: false }
+            };
+
+            if (abcTrendChart) {
+                abcTrendChart.updateOptions(abcTrendOptions);
+            } else {
+                abcTrendChart = new ApexCharts(document.getElementById('abc-trend-chart'), abcTrendOptions);
+                abcTrendChart.render();
+            }
+
+            // --- Chart 2: Top Contractors Horizontal Bar Chart ---
+            const contractorCounts = {};
+            filtered.forEach(item => {
+                contractorCounts[item.contractor] = (contractorCounts[item.contractor] || 0) + 1;
+            });
+
+            const sortedContractors = Object.entries(contractorCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8);
+
+            const barLabels = sortedContractors.map(item => item[0]);
+            const barData = sortedContractors.map(item => item[1]);
+
+            const rankingOptions = {
+                chart: {
+                    type: 'bar',
+                    height: 340,
+                    toolbar: { show: false },
+                    background: 'transparent'
+                },
+                theme: { mode: themeMode },
+                plotOptions: {
+                    bar: {
+                        horizontal: true,
+                        barHeight: '60%',
+                        borderRadius: 6,
+                        distributed: true
+                    }
+                },
+                colors: ['#028090', '#00a896', '#02c39a', '#05668d', '#00a896', '#02c39a', '#028090', '#05668d'],
+                dataLabels: {
+                    enabled: true,
+                    formatter: function (val) { return val + " 件"; },
+                    offsetX: 10,
+                    style: { fontSize: '11px', colors: [isDark ? '#fff' : '#111827'] }
+                },
+                series: [{ name: '安全作業件數', data: barData }],
+                xaxis: {
+                    categories: barLabels,
+                    labels: { style: { colors: labelColor } }
+                },
+                yaxis: {
+                    labels: { style: { colors: labelColor, width: 110 } }
+                },
+                grid: { borderColor: gridColor },
+                legend: { show: false }
+            };
+
+            if (contractorChart) {
+                contractorChart.updateOptions(rankingOptions);
+            } else {
+                contractorChart = new ApexCharts(document.getElementById('contractor-ranking-chart'), rankingOptions);
+                contractorChart.render();
+            }
+
+            // --- Chart 3: Dynamic CAGR column/trend graph ---
+            const years = availableYears;
+            const yearlyPermits = years.map(y => {
+                return rawPermitsData.filter(item => item.year === y).length;
+            });
+
+            const cagrOptions = {
+                chart: {
+                    type: 'line',
+                    height: 210,
+                    toolbar: { show: false },
+                    background: 'transparent'
+                },
+                theme: { mode: themeMode },
+                colors: ['#02c39a'],
+                stroke: { curve: 'straight', width: 3 },
+                markers: { size: 5, strokeColors: '#0b1220', strokeWidth: 2 },
+                series: [{ name: '許可證件數', type: 'column', data: yearlyPermits }],
+                xaxis: {
+                    categories: years.map(y => `${y}年`),
+                    labels: { style: { colors: labelColor } }
+                },
+                yaxis: {
+                    labels: { style: { colors: labelColor } }
+                },
+                grid: { borderColor: gridColor },
+                plotOptions: {
+                    bar: {
+                        columnWidth: '40%',
+                        borderRadius: 4
+                    }
+                }
+            };
+
+            if (cagrTrendChart) {
+                cagrTrendChart.updateOptions(cagrOptions);
+            } else {
+                cagrTrendChart = new ApexCharts(document.getElementById('cagr-chart'), cagrOptions);
+                cagrTrendChart.render();
+            }
+
+            // --- Chart 4: Dynamic Confined Space Gas Safety SPC & BoxPlot Visualizer ---
+            renderGasAnalysisChart();
+        }
+
+        function updateTable() {
+            const filtered = getFilteredPermits();
+            const total = filtered.length;
+            const totalPages = Math.ceil(total / state.pageSize) || 1;
+
+            if (state.currentPage > totalPages) {
+                state.currentPage = totalPages;
+            }
+
+            const startIdx = (state.currentPage - 1) * state.pageSize;
+            const endIdx = Math.min(startIdx + state.pageSize, total);
+            const pageData = filtered.slice(startIdx, endIdx);
+
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            沒有找到符合搜尋篩選條件的許可證
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('table-info').innerText = '顯示第 0 到 0 筆，共 0 筆紀錄';
+                document.getElementById('page-indicator').innerText = '1';
+                document.getElementById('btn-prev-page').disabled = true;
+                document.getElementById('btn-next-page').disabled = true;
+                return;
+            }
+
+            pageData.forEach(item => {
+                let badgeClass = "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20";
+                if (item.grade.startsWith("A")) {
+                    badgeClass = "bg-red-500/10 text-red-500 border-red-500/20";
+                } else if (item.grade.startsWith("B")) {
+                    badgeClass = "bg-amber-500/10 text-amber-500 border-amber-500/20";
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-all border-b border-gray-100 dark:border-gray-800/40 text-xs sm:text-sm";
+                tr.innerHTML = `
+                    <td class="px-5 py-3.5 font-mono font-bold text-cyan-600 dark:text-cyan-400 whitespace-nowrap">${item.permitNo}</td>
+                    <td class="px-5 py-3.5 text-gray-400 font-mono whitespace-nowrap">${item.applyTime}</td>
+                    <td class="px-5 py-3.5 font-medium whitespace-nowrap">${item.plant}</td>
+                    <td class="px-5 py-3.5 font-medium max-w-[150px] truncate" title="${item.contractor}">${item.contractor}</td>
+                    <td class="px-5 py-3.5 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${badgeClass}">
+                            ${item.grade.split('(')[0]}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3.5 font-mono text-center font-bold text-cyan-500">${item.workersCount}</td>
+                    <td class="px-5 py-3.5 max-w-[200px] truncate" title="${item.content}">
+                        <span class="font-semibold block text-xs text-gray-400">${item.attribute}</span>
+                        ${item.content}
+                    </td>
+                    <td class="px-5 py-3.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        <span class="block font-medium text-gray-800 dark:text-gray-200">${item.supervisor}</span>
+                        <span class="text-xs text-gray-400">${item.supervision}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('table-info').innerText = `顯示第 ${total > 0 ? startIdx + 1 : 0} 到 ${endIdx} 筆，共 ${total} 筆紀錄`;
+            document.getElementById('page-indicator').innerText = state.currentPage;
+            document.getElementById('btn-prev-page').disabled = state.currentPage === 1;
+            document.getElementById('btn-next-page').disabled = state.currentPage === totalPages;
+        }
+
+        function exportFilteredDataToCSV() {
+            const filtered = getFilteredPermits();
+            if (filtered.length === 0) {
+                showNotification("目前沒有符合篩選條件的數據可供導出！", "error");
+                return;
+            }
+
+            const headers = ["許可證編號", "申請時間", "廠區", "承攬商名稱", "作業分級", "工作工作人員數", "施工地點屬性", "工作內容", "監造負責人"];
+            const csvRows = [];
+            csvRows.push('\uFEFF' + headers.join(',')); // Add UTF-8 BOM
+
+            filtered.forEach(item => {
+                const values = [
+                    item.permitNo,
+                    item.applyTime,
+                    item.plant,
+                    `"${item.contractor.replace(/"/g, '""')}"`,
+                    item.grade,
+                    item.workersCount,
+                    `"${item.attribute.replace(/"/g, '""')}"`,
+                    `"${item.content.replace(/"/g, '""')}"`,
+                    item.supervisor
+                ];
+                csvRows.push(values.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `中油承攬許可證篩選結果_${state.selectedYear}年.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showNotification("已成功匯出當期安全數據為標準 CSV 報表！", "success");
+        }
+
+        window.onload = function() {
+            initApp();
+        };
+    </script>
+</body>
+</html>
