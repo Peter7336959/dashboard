@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<style type="text/css">
+.inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+}
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.left {
+  text-align: left;
+}
+.right {
+  text-align: right;
+}
+.center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.sng {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.def {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧事故調查報告系統 - 勞檢與上級單位申報專用</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f1f5f9;
+        }
+        /* A4 紙張預覽樣式 */
+        .a4-preview {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+        /* 列印樣式優化 */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- 頂部導航列 -->
+    <header class="bg-slate-800 text-white shadow-md no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-red-600 p-2 rounded-lg text-white">
+                    <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wider">智慧事故調查報告管理系統</h1>
+                    <p class="text-xs text-slate-400">符合各級機關與地方勞動檢查處標準格式</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <!-- 上傳 CSV 按鈕 -->
+                <label class="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 transition text-white px-4 py-2 rounded-lg cursor-pointer text-sm font-medium border border-slate-600">
+                    <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                    <span>匯入事故 CSV 資料表</span>
+                    <input type="file" id="csv-file-input" accept=".csv" class="hidden">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 左側：資料清單與編輯表單 (佔 5 格) -->
+        <section class="lg:col-span-5 flex flex-col gap-6 no-print">
+            
+            <!-- 事故快速選擇面板 -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-md font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="database" class="w-4 h-4 text-indigo-600"></i>
+                        事故案件清單
+                    </h2>
+                    <span id="record-count" class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-medium">共 4 筆資料</span>
+                </div>
+                
+                <div class="relative mb-3">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="search-input" placeholder="搜尋事故名稱、地點、原因..." class="w-full pl-9 pr-3 py-1.5 text-sm rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                </div>
+
+                <!-- 滾動列表 -->
+                <div id="accident-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <!-- JS 動態渲染 -->
+                </div>
+                
+                <button id="btn-new-report" class="mt-3 w-full py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span>建立全新事故調查報告</span>
+                </button>
+            </div>
+
+            <!-- 調查資訊編輯表單 -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex-1 flex flex-col">
+                <div class="flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+                    <i data-lucide="edit-3" class="w-5 h-5 text-indigo-600"></i>
+                    <h2 class="text-md font-bold text-slate-800">調查資訊詳細設定</h2>
+                </div>
+
+                <form id="report-form" class="space-y-4 flex-1 overflow-y-auto max-h-[500px] pr-2">
+                    
+                    <!-- 1. 基本資訊 -->
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">1. 基本與屬性資訊</h3>
+                        
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">事故名稱</label>
+                            <input type="text" id="form-name" required class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">事故屬性</label>
+                                <select id="form-attribute" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                    <option value="職災">職災</option>
+                                    <option value="虛驚">虛驚</option>
+                                    <option value="財損">財損</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">事故類別</label>
+                                <input type="text" id="form-type" placeholder="如: 切割傷、缺氧中毒" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">事故日期</label>
+                                <input type="date" id="form-date" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">廠區</label>
+                                <input type="text" id="form-factory" placeholder="如: 桃園" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">事故地點</label>
+                            <input type="text" id="form-location" placeholder="如: 桃園廠第一作業區" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">人員傷亡</label>
+                                <input type="text" id="form-casualty" placeholder="無" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">員工類型</label>
+                                <input type="text" id="form-emp-type" placeholder="無" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">財物損失</label>
+                                <input type="text" id="form-loss" placeholder="無" class="w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">報告填報人員 (職稱姓名)</label>
+                            <input type="text" id="form-reporter" placeholder="如: 安全衛生課長 王小明" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-100">
+
+                    <!-- 2. 事發經過描述（人事時地物與緊急處置） -->
+                    <div class="space-y-3 bg-indigo-50/50 p-3 rounded-lg border border-indigo-100">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xs font-bold text-indigo-700 flex items-center gap-1">
+                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                                2. 事發經過描述（人事時地物）
+                            </h3>
+                            <button type="button" id="btn-generate-story" class="text-[10px] bg-indigo-600 text-white hover:bg-indigo-700 px-2 py-1 rounded transition flex items-center gap-1 font-semibold">
+                                <i data-lucide="sparkles" class="w-3 h-3"></i> 整合生成描述
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-500">人 (關係人/作業員)</label>
+                                <input type="text" id="narrative-who" placeholder="如: 切割作業員王大同" class="w-full px-2 py-1.5 text-xs rounded border border-slate-200 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-500">時 (具體事發時間)</label>
+                                <input type="text" id="narrative-when" placeholder="如: 上午 10:15 分左右" class="w-full px-2 py-1.5 text-xs rounded border border-slate-200 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-500">地 (細部確切位置)</label>
+                                <input type="text" id="narrative-where" placeholder="如: 廠區B棟二樓切割機台旁" class="w-full px-2 py-1.5 text-xs rounded border border-slate-200 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-500">物 (設備/工器具/物質)</label>
+                                <input type="text" id="narrative-what" placeholder="如: 1號材料切割機" class="w-full px-2 py-1.5 text-xs rounded border border-slate-200 focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500">事 (事故發生經過之關鍵事件描述)</label>
+                            <textarea id="narrative-event" rows="2" placeholder="如: 於執行切削作業時，因機台異常晃動且材料破裂，導致碎片飛出割傷右手。" class="w-full px-2 py-1.5 text-xs rounded border border-slate-200 focus:outline-none resize-none"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-500">緊急處置 (通報、搶救、醫療、送醫)</label>
+                            <textarea id="narrative-emergency" rows="2" placeholder="如: 現場同仁立即按下緊急停止鈕，並由工安人員進行急救包紮後送往林口長庚醫院。" class="w-full px-2 py-1.5 text-xs rounded border border-slate-200 focus:outline-none resize-none"></textarea>
+                        </div>
+
+                        <div class="pt-1">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">最終事發經過整合結果</label>
+                            <textarea id="form-description" rows="3" required placeholder="點選上方「整合生成描述」可自動產生，或可在此自行編輯修正調整完整段落。" class="w-full p-2 text-xs rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"></textarea>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-100">
+
+                    <!-- 3. 直接原因 -->
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">3. 原因分析</h3>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">直接原因</label>
+                            <input type="text" id="form-direct-cause" placeholder="如: 設備異常或作業失誤" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- 4. 間接原因 (多項列出) -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-medium text-slate-600">間接原因 (多項分列)</label>
+                            <button type="button" onclick="addDynamicItem('indirect-container')" class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 font-medium">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增項目
+                            </button>
+                        </div>
+                        <div id="indirect-container" class="space-y-2">
+                            <!-- JS 動態插入項目 -->
+                        </div>
+                    </div>
+
+                    <!-- 5. 基本原因 (多項列出) -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-medium text-slate-600">基本原因 (多項分列)</label>
+                            <button type="button" onclick="addDynamicItem('basic-container')" class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 font-medium">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增項目
+                            </button>
+                        </div>
+                        <div id="basic-container" class="space-y-2">
+                            <!-- JS 動態插入項目 -->
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-100">
+
+                    <!-- 6. 改善措施 (多項列出) -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-medium text-slate-600 text-emerald-700 font-semibold">改善措施與對策 (多項分列)</label>
+                            <button type="button" onclick="addDynamicItem('measure-container', 'border-emerald-200')" class="text-xs text-emerald-600 hover:text-emerald-800 flex items-center gap-0.5 font-medium">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增措施
+                            </button>
+                        </div>
+                        <div id="measure-container" class="space-y-2">
+                            <!-- JS 動態插入項目 -->
+                        </div>
+                    </div>
+
+                </form>
+
+                <!-- 確認與儲存控制區 -->
+                <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col sm:flex-row gap-2">
+                    <button type="button" id="btn-save-report" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 transition text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 shadow-sm">
+                        <i data-lucide="save" class="w-4.5 h-4.5"></i>
+                        <span>確認儲存並更新案件</span>
+                    </button>
+                    <button type="button" id="btn-save-as-new" class="py-2.5 px-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition rounded-lg text-xs font-bold flex items-center justify-center gap-1.5" title="將目前編輯內容另存為一筆全新的事故案件">
+                        <i data-lucide="plus-square" class="w-4 h-4"></i>
+                        <span>另存為全新資料</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 右側：報告預覽與輸出控制 (佔 7 格) -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+            
+            <!-- 輸出控制按鈕列 -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center justify-between no-print">
+                <div class="flex items-center gap-2">
+                    <span class="flex h-2.5 w-2.5 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                    </span>
+                    <span class="text-sm font-medium text-slate-700">即時調查報告預覽</span>
+                </div>
+                
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <!-- 複製報告文字 -->
+                    <button id="btn-copy-text" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        <span>複製報告內容</span>
+                    </button>
+                    <!-- 下載 Word 檔 -->
+                    <button id="btn-download-doc" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span>產出 Word 檔</span>
+                    </button>
+                    <!-- 列印/存 PDF 檔 -->
+                    <button id="btn-print-pdf" class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                        <i data-lucide="printer" class="w-4 h-4"></i>
+                        <span>產出 PDF 檔</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 調查報告 A4 紙張預覽區 -->
+            <div class="w-full overflow-x-auto flex-1 flex justify-center items-start py-4 bg-slate-500 rounded-xl min-h-[850px] shadow-inner">
+                <div id="print-area" class="a4-preview relative">
+                    
+                    <!-- 報告標頭 -->
+                    <div class="text-center mb-6">
+                        <h2 class="text-2xl font-black text-slate-900 tracking-wider mb-1">【事故調查報告書】</h2>
+                        <p class="text-xs text-slate-500 tracking-widest uppercase">職業安全衛生法規申報標準格式 (勞動檢查處/上級機關備查用)</p>
+                        <div class="h-1 w-24 bg-red-600 mx-auto mt-3"></div>
+                    </div>
+
+                    <!-- 報告基本表格 -->
+                    <table class="w-full border-collapse border-2 border-slate-800 text-xs text-slate-800 mb-4">
+                        <tbody>
+                            <tr>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold w-20 text-center">事故名稱</td>
+                                <td colspan="3" id="preview-name" class="border border-slate-800 p-2 font-medium text-sm text-slate-900">-</td>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold w-20 text-center">調查日期</td>
+                                <td id="preview-report-date" class="border border-slate-800 p-2">-</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold text-center">事故屬性</td>
+                                <td id="preview-attribute" class="border border-slate-800 p-2 font-bold text-red-600 text-center">-</td>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold w-20 text-center">事故類型</td>
+                                <td id="preview-type" class="border border-slate-800 p-2 text-center">-</td>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold text-center">廠區名稱</td>
+                                <td id="preview-factory" class="border border-slate-800 p-2 text-center">-</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold text-center">發生時間</td>
+                                <td id="preview-date" class="border border-slate-800 p-2 text-center">-</td>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold text-center">具體地點</td>
+                                <td colspan="3" id="preview-location" class="border border-slate-800 p-2">-</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold text-center">傷亡狀況</td>
+                                <td id="preview-casualty" class="border border-slate-800 p-2 text-center">-</td>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold text-center">受傷類型</td>
+                                <td id="preview-emp-type" class="border border-slate-800 p-2 text-center">-</td>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold text-center">財物損失</td>
+                                <td id="preview-loss" class="border border-slate-800 p-2 text-center">-</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-slate-800 bg-slate-100 p-2 font-bold text-center">填報人員</td>
+                                <td colspan="5" id="preview-reporter" class="border border-slate-800 p-2 font-medium text-slate-900">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- 事發經過（含人事時地物與緊急處置） -->
+                    <div class="border-2 border-slate-800 p-4 mb-4">
+                        <h3 class="text-sm font-bold text-slate-900 border-b-2 border-slate-300 pb-1.5 mb-3 flex items-center gap-1.5">
+                            <span class="w-1.5 h-4 bg-indigo-600 inline-block"></span>
+                            一、事發詳細經過描述（包含人事時地物與緊急處置）
+                        </h3>
+                        <!-- 六要素結構呈現 -->
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded border border-slate-200 mb-3 text-xs">
+                            <div><strong class="text-slate-500">【人】關係人員：</strong><span id="preview-who" class="text-slate-800 font-medium">-</span></div>
+                            <div><strong class="text-slate-500">【時】具體時間：</strong><span id="preview-when" class="text-slate-800 font-medium">-</span></div>
+                            <div><strong class="text-slate-500">【地】精確地點：</strong><span id="preview-where" class="text-slate-800 font-medium">-</span></div>
+                            <div class="col-span-2 md:col-span-3"><strong class="text-slate-500">【物】事涉設備/物質：</strong><span id="preview-what" class="text-slate-800 font-medium">-</span></div>
+                        </div>
+                        <div class="space-y-3 text-xs leading-relaxed text-slate-800">
+                            <div>
+                                <h4 class="font-bold text-indigo-900 mb-1">【經過情節】</h4>
+                                <p id="preview-description" class="bg-indigo-50/20 p-2.5 rounded border border-indigo-100 text-justify">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 事故原因分析 -->
+                    <div class="border-2 border-slate-800 p-4 mb-4">
+                        <h3 class="text-sm font-bold text-slate-900 border-b-2 border-slate-300 pb-1.5 mb-3 flex items-center gap-1.5">
+                            <span class="w-1.5 h-4 bg-indigo-600 inline-block"></span>
+                            二、事故原因分析（職安法基準）
+                        </h3>
+                        
+                        <div class="space-y-3 text-xs">
+                            <!-- 直接原因 -->
+                            <div class="bg-amber-50/40 p-2 rounded border border-amber-100">
+                                <h4 class="font-bold text-amber-800 mb-1 flex items-center gap-1">
+                                    <span class="w-1 h-3 bg-amber-500 inline-block"></span> 
+                                    1. 直接原因（致災之直接能量或不安全狀態）：
+                                </h4>
+                                <p id="preview-direct-cause" class="pl-2 font-medium text-slate-700">-</p>
+                            </div>
+
+                            <!-- 間接原因 -->
+                            <div>
+                                <h4 class="font-bold text-slate-800 mb-1">2. 間接原因（不安全之行為、不安全之設備等）：</h4>
+                                <ol id="preview-indirect-list" class="list-decimal pl-5 space-y-1 text-slate-700 font-medium">
+                                    <!-- 動態生成 -->
+                                </ol>
+                            </div>
+
+                            <!-- 基本原因 -->
+                            <div>
+                                <h4 class="font-bold text-slate-800 mb-1">3. 基本原因（管理、組織、工安文化等系統面漏洞）：</h4>
+                                <ol id="preview-basic-list" class="list-decimal pl-5 space-y-1 text-slate-700 font-medium">
+                                    <!-- 動態生成 -->
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 改善防範對策 -->
+                    <div class="border-2 border-slate-800 p-4 mb-6">
+                        <h3 class="text-sm font-bold text-slate-900 border-b-2 border-slate-300 pb-1.5 mb-3 flex items-center gap-1.5">
+                            <span class="w-1.5 h-4 bg-emerald-600 inline-block"></span>
+                            三、具體改善對策與防範措施
+                        </h3>
+                        <ol id="preview-measure-list" class="list-decimal pl-5 space-y-1.5 text-xs text-slate-800 font-semibold">
+                            <!-- 動態生成 -->
+                        </ol>
+                    </div>
+
+                    <!-- 簽署與核定核章 -->
+                    <div class="mt-8 border-t border-slate-400 pt-6">
+                        <div class="grid grid-cols-4 gap-4 text-center text-xs">
+                            <div>
+                                <p class="text-slate-500 mb-8">調查小組主管</p>
+                                <div class="border-b border-slate-600 w-24 mx-auto"></div>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 mb-8">職業安全衛生人員</p>
+                                <div class="border-b border-slate-600 w-24 mx-auto"></div>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 mb-8">部門主管/廠長</p>
+                                <div class="border-b border-slate-600 w-24 mx-auto"></div>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 mb-8">總經理/雇主</p>
+                                <div class="border-b border-slate-600 w-24 mx-auto"></div>
+                            </div>
+                        </div>
+                        <div class="text-right text-[10px] text-slate-400 mt-6 flex justify-between">
+                            <span>製表系統：智慧事故調查報告系統 V1.0</span>
+                            <span>列印日期：<span id="current-print-time">-</span></span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- 頁尾 -->
+    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 border-t border-slate-700 no-print">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>© 2026 智慧工安防護科技研發團隊. 符合勞動檢查法規格式、上級呈報核備需求設計</p>
+        </div>
+    </footer>
+
+    <!-- 訊息提示框 -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 transform translate-y-20 opacity-0 transition duration-300 pointer-events-none z-50">
+        <i data-lucide="info" class="w-5 h-5 text-indigo-400" id="toast-icon"></i>
+        <span id="toast-text" class="text-xs font-medium">系統訊息</span>
+    </div>
+
+    <!-- 內建範例數據 (擷取自使用者上傳之事故資料表_擴充版) -->
+    <script>
+        const sampleAccidents = [
+            {
+                "事故名稱": "桃園廠作業區切割傷",
+                "事故屬性": "職災",
+                "事故日期": "2023-09-20",
+                "事故地點": "桃園廠第一切削區",
+                "事故類型": "切割傷",
+                "直接原因": "設備異常或作業失誤",
+                "間接原因": "現場環境雜亂；材料疲勞；通訊聯繫錯誤",
+                "基本原因": "工安文化待提升；預防保養落實度低",
+                "人員傷亡": "1人輕傷",
+                "受傷員工類型": "本公司員工",
+                "財物損失": "材料報廢約1萬元",
+                "廠區": "桃園",
+                "改善措施": "加強人員教育訓練；增設安全監控設備；強化危害告知；增設防墜設施",
+                "reporter": "安衛課長 林志豪",
+                "narrative_who": "資深切割機操作員 林大明",
+                "narrative_when": "下午 14:30 進行第二批金屬切削時",
+                "narrative_where": "桃園廠A區1號材料切削機台",
+                "narrative_what": "高速旋轉切削刀具及重金屬待加工件",
+                "narrative_event": "林員在執行例行切削作業時，因金屬材料內部疲勞突然破裂，加上現場採光通訊聯繫錯誤，致使其在排除卡料時不慎觸碰到高速運轉未完全靜止之刀具，割傷右手食指與中指。",
+                "narrative_emergency": "同組作業人員立即按下防護急停鈕停機。現場工安幹事迅速以急救箱止血帶敷藥包紮，並派遣公務車將受害者送至附近敏盛醫院急診，並於當天進行傷口縫合後返家休養。"
+            },
+            {
+                "事故名稱": "桃園廠虛驚事故_128",
+                "事故屬性": "虛驚",
+                "事故日期": "2009-06-21",
+                "事故地點": "桃園廠地下儲水槽",
+                "事故類型": "缺氧中毒",
+                "直接原因": "侷限空間缺氧防護不足",
+                "間接原因": "未落實危害辨識；作業程序不完備；現場環境雜亂；設備老舊",
+                "基本原因": "管理制度不健全；安全意識薄弱",
+                "人員傷亡": "無",
+                "受傷員工類型": "無",
+                "財物損失": "無",
+                "廠區": "桃園",
+                "改善措施": "增設防墜設施；定期辦理緊急應變演練",
+                "reporter": "工安專員 洪小玲",
+                "narrative_who": "維護人員 陳小輝及外協監事",
+                "narrative_when": "上午 09:15 定期例行檢修保養時",
+                "narrative_where": "地下蓄水槽第三井室",
+                "narrative_what": "缺氧密閉空間與老舊爬梯防墜設施",
+                "narrative_event": "作業人員進入未經充分通風換氣之侷限空間（地下蓄水槽）時，因未完全落實通風量測，先行爬入時險些因缺氧暈眩，幸賴同伴即時喊停並拉起，未產生人員實際受傷。",
+                "narrative_emergency": "同行人員立即以捲揚機強行拉回地面，就地施以氧氣面罩並實施通風，隨後通報工安課，該作業立即宣告中止並封鎖現場重新評估程序。"
+            },
+            {
+                "事故名稱": "林園廠虛驚事故_78",
+                "事故屬性": "虛驚",
+                "事故日期": "2024-10-01",
+                "事故地點": "林園廠第二製程槽區",
+                "事故類型": "超壓",
+                "直接原因": "安全閥故障未排氣",
+                "間接原因": "未落實危害辨識；監督查核不足",
+                "基本原因": "安全意識薄弱；預防保養落實度低",
+                "人員傷亡": "無",
+                "受傷員工類型": "無",
+                "財物損失": "管件變形損失約5萬元",
+                "廠區": "林園",
+                "改善措施": "落實動火許可制度；修訂標準作業程序；加強人員教育訓練；定期辦理緊急應變演練",
+                "reporter": "廠務工程師 吳明修",
+                "narrative_who": "中控室值班台班長 黃國榮",
+                "narrative_when": "大夜班 03:40 壓力異常警報響起",
+                "narrative_where": "林園廠槽區D-302冷凝分離槽",
+                "narrative_what": "D-302冷凝槽、進料安全閥、旁路控制閥",
+                "narrative_event": "因製程管路回流安全閥未能按預設壓力跳開洩壓，導致槽體內壓急遽攀升至警戒上限，幸好中控人員迅速切斷進料，否則極可能導致重大氣體爆裂外洩事故。",
+                "narrative_emergency": "中控班長啟動預防緊急停機機制，排空製程並啟動外灑水降溫冷凝，隨即調派工安巡查，判定安全閥疲勞卡死，立即更換故障元件並測試正常。"
+            },
+            {
+                "事故名稱": "大林廠重大職災事故_47",
+                "事故屬性": "職災",
+                "事故日期": "2004-06-26",
+                "事故地點": "大林廠高架鋼骨作業區",
+                "事故類型": "切割傷、重物擊中或高處墜落",
+                "直接原因": "高處吊掛物脫鉤砸落",
+                "間接原因": "現場環境雜亂；作業程序不完備",
+                "基本原因": "安全意識薄弱；預防保養落實度低；管理制度不健全",
+                "人員傷亡": "2人死亡",
+                "受傷員工類型": "承攬商雇員",
+                "財物損失": "吊臂損傷及鋼樑變形折損約35萬元",
+                "廠區": "大林",
+                "改善措施": "強化危害告知；加強承攬商管理",
+                "reporter": "安全衛生組長 張家豪",
+                "narrative_who": "承攬商起重吊掛吊車司機與兩名地面管制員",
+                "narrative_when": "上午 11:00 分執行鋼樑吊裝吊掛時",
+                "narrative_where": "大林廠東側高架鋼構工地二期工程處",
+                "narrative_what": "25噸移動式起重機、不銹鋼吊帶、5噸鋼製橫樑",
+                "narrative_event": "承攬商在執行高處吊掛橫樑安裝作業時，因現場作業區混亂且吊掛起重作業程序不完備，綁紮之不銹鋼吊帶突然斷裂，橫樑失去重心墜落，擊中下方未在管制區外的承攬商作業人員。",
+                "narrative_emergency": "當場由現場主管立即撥打119並通知高市勞檢處。消防隊迅速抵達並實施CPR後送至高醫大附設醫院急救，唯兩員傷勢過重於下午宣告不治。工安與勞檢處隨後封鎖現場進行勘查。"
+            }
+        ];
+
+        let accidentsList = [...sampleAccidents];
+        let activeIndex = 0;
+
+        // 防禦性安全值寫入
+        const safeSetVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        };
+
+        // 初始化 Lucide 圖標
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initApp();
+        });
+
+        function initApp() {
+            renderAccidentsList();
+            loadAccidentToForm(activeIndex);
+            setupEventListeners();
+            
+            // 設定今日製表日期
+            const today = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+            const curPrintTime = document.getElementById('current-print-time');
+            if (curPrintTime) curPrintTime.textContent = today;
+            const prevRepDate = document.getElementById('preview-report-date');
+            if (prevRepDate) prevRepDate.textContent = today;
+        }
+
+        // 渲染左側清單
+        function renderAccidentsList(filter = '') {
+            const listContainer = document.getElementById('accident-list');
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+            
+            const filtered = accidentsList.filter(acc => {
+                return (acc.事故名稱 || '').toLowerCase().includes(filter.toLowerCase()) ||
+                       (acc.事故地點 || '').toLowerCase().includes(filter.toLowerCase()) ||
+                       (acc.直接原因 || '').toLowerCase().includes(filter.toLowerCase());
+            });
+
+            const recCount = document.getElementById('record-count');
+            if (recCount) recCount.textContent = `共 ${filtered.length} 筆資料`;
+
+            filtered.forEach((acc, index) => {
+                const originalIndex = accidentsList.indexOf(acc);
+                const isActive = originalIndex === activeIndex;
+
+                let badgeColor = "bg-amber-100 text-amber-800";
+                if (acc.事故屬性 === '職災') badgeColor = "bg-red-100 text-red-800";
+                if (acc.事故屬性 === '財損') badgeColor = "bg-blue-100 text-blue-800";
+
+                const itemHtml = `
+                    <div onclick="selectAccident(${originalIndex})" class="p-3 rounded-lg border transition cursor-pointer text-left ${isActive ? 'bg-indigo-50 border-indigo-500' : 'bg-white hover:bg-slate-50 border-slate-200'}">
+                        <div class="flex justify-between items-start mb-1 gap-1">
+                            <span class="font-bold text-xs text-slate-800 truncate block max-w-[180px]">${acc.事故名稱 || '未命名事故'}</span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${badgeColor}">${acc.事故屬性 || '職災'}</span>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-500">
+                            <span>廠區: ${acc.廠區 || '無'}</span>
+                            <span>日期: ${acc.事故日期 || '無'}</span>
+                        </div>
+                    </div>
+                `;
+                listContainer.insertAdjacentHTML('beforeend', itemHtml);
+            });
+        }
+
+        // 切換點選事故
+        window.selectAccident = function(index) {
+            if (index < 0 || index >= accidentsList.length) return;
+            activeIndex = index;
+            loadAccidentToForm(index);
+            
+            const searchInput = document.getElementById('search-input');
+            renderAccidentsList(searchInput ? searchInput.value : '');
+            showToast("成功切換案件：" + (accidentsList[index].事故名稱 || '未命名'), "check-circle");
+        };
+
+        // 將資料載入至表單中
+        function loadAccidentToForm(index) {
+            const acc = accidentsList[index];
+            if (!acc) return;
+
+            safeSetVal('form-name', acc.事故名稱 || '');
+            safeSetVal('form-attribute', acc.事故屬性 || '職災');
+            safeSetVal('form-type', acc.事故類型 || '');
+            safeSetVal('form-date', acc.事故日期 || '');
+            safeSetVal('form-factory', acc.廠區 || '');
+            safeSetVal('form-location', acc.事故地點 || '');
+            safeSetVal('form-casualty', acc.人員傷亡 || '無');
+            safeSetVal('form-emp-type', acc.受傷員工類型 || '無');
+            safeSetVal('form-loss', acc.財物損失 || '無');
+            safeSetVal('form-reporter', acc.reporter || acc.填報人員 || '');
+            
+            // 載入經過與六要素
+            safeSetVal('narrative-who', acc.narrative_who || '');
+            safeSetVal('narrative-when', acc.narrative_when || '');
+            safeSetVal('narrative-where', acc.narrative_where || '');
+            safeSetVal('narrative-what', acc.narrative_what || '');
+            safeSetVal('narrative-event', acc.narrative_event || '');
+            safeSetVal('narrative-emergency', acc.narrative_emergency || '');
+            
+            // 合併段落
+            safeSetVal('form-description', acc.事發經過描述 || acc.事發經過 || acc.description || '');
+            
+            // 直接原因
+            safeSetVal('form-direct-cause', acc.直接原因 || '');
+
+            // 解析並載入「間接原因」 (使用分號拆分)
+            const indirects = acc.間接原因 ? acc.間接原因.split(/[；;]/) : [];
+            initDynamicContainer('indirect-container', indirects);
+
+            // 解析並載入「基本原因」 (使用分號拆分)
+            const basics = acc.基本原因 ? acc.基本原因.split(/[；;]/) : [];
+            initDynamicContainer('basic-container', basics);
+
+            // 解析並載入「改善措施」 (使用分號拆分)
+            const measures = acc.改善措施 ? acc.改善措施.split(/[；;]/) : [];
+            initDynamicContainer('measure-container', measures, 'border-emerald-200');
+
+            // 自動觸發預覽更新
+            updatePreview();
+        }
+
+        // 動態增刪控制 (間接、基本原因及改善措施多項分列)
+        function initDynamicContainer(containerId, itemsArray, borderColorClass = 'border-slate-200') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            
+            if (itemsArray.length === 0 || (itemsArray.length === 1 && itemsArray[0].trim() === "")) {
+                addDynamicItem(containerId, borderColorClass, '');
+            } else {
+                itemsArray.forEach(item => {
+                    if (item.trim()) {
+                        addDynamicItem(containerId, borderColorClass, item.trim());
+                    }
+                });
+            }
+        }
+
+        window.addDynamicItem = function(containerId, borderColorClass = 'border-slate-200', val = '') {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const itemId = 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            
+            const html = `
+                <div id="${itemId}" class="flex gap-2 items-center">
+                    <input type="text" value="${val}" placeholder="輸入說明項目..." class="flex-1 px-3 py-1.5 text-xs rounded-lg border ${borderColorClass} focus:outline-none focus:ring-2 focus:ring-indigo-500 dynamic-input">
+                    <button type="button" onclick="removeDynamicItem('${itemId}')" class="text-slate-400 hover:text-red-500 p-1 rounded-md transition">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            lucide.createIcons();
+            
+            // 綁定輸入即時更新監聽
+            const newlyAdded = document.getElementById(itemId).querySelector('input');
+            if (newlyAdded) {
+                newlyAdded.addEventListener('input', updatePreview);
+            }
+        };
+
+        window.removeDynamicItem = function(itemId) {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.remove();
+                updatePreview();
+            }
+        };
+
+        // 生成經過段落 (依據人事時地物及緊急處置六大要素)
+        function generateStoryParagraph(showToastNotify = true) {
+            const who = document.getElementById('narrative-who')?.value.trim() || '';
+            const when = document.getElementById('narrative-when')?.value.trim() || '';
+            const where = document.getElementById('narrative-where')?.value.trim() || '';
+            const what = document.getElementById('narrative-what')?.value.trim() || '';
+            const event = document.getElementById('narrative-event')?.value.trim() || '';
+            const emergency = document.getElementById('narrative-emergency')?.value.trim() || '';
+
+            let paragraph = "";
+            if (who || when || where || what || event || emergency) {
+                paragraph = `事故當日（${when || '某時刻'}），於${where || '事發地點'}由【${who || '相關人員'}】涉及【${what || '相關機具/物質'}】。`;
+                if (event) {
+                    paragraph += `事發經過：${event}`;
+                } else {
+                    paragraph += `在執行作業過程中，不慎發生了此異常意外。`;
+                }
+                if (emergency) {
+                    paragraph += ` 事故發生後，現場立即採取下列緊急處置：${emergency}`;
+                }
+            }
+
+            if (paragraph) {
+                const formDesc = document.getElementById('form-description');
+                if (formDesc) formDesc.value = paragraph;
+                if (showToastNotify) showToast("已將 6 要素整合填寫至「事發經過描述欄位」！", "sparkles");
+                updatePreview();
+            } else if (showToastNotify) {
+                showToast("請至少填寫部分六要素欄位，以利自動產生描述。", "info");
+            }
+        }
+
+        // 收集表單資料 (防禦性獲取，避免 Null)
+        function getFormData() {
+            const getVal = (id) => document.getElementById(id)?.value || '';
+            
+            // 解析多項分列的輸入
+            const getDynamicValues = (containerId) => {
+                const container = document.getElementById(containerId);
+                if (!container) return [];
+                const inputs = container.querySelectorAll('.dynamic-input');
+                const list = [];
+                inputs.forEach(input => {
+                    if (input.value.trim()) list.push(input.value.trim());
+                });
+                return list;
+            };
+
+            const name = getVal('form-name');
+            const attribute = getVal('form-attribute') || '職災';
+            const type = getVal('form-type');
+            const date = getVal('form-date');
+            const factory = getVal('form-factory');
+            const location = getVal('form-location');
+            const casualty = getVal('form-casualty');
+            const empType = getVal('form-emp-type');
+            const loss = getVal('form-loss');
+            const reporter = getVal('form-reporter');
+            
+            // 六要素與經過
+            const narrative_who = getVal('narrative-who');
+            const narrative_when = getVal('narrative-when');
+            const narrative_where = getVal('narrative-where');
+            const narrative_what = getVal('narrative-what');
+            const narrative_event = getVal('narrative-event');
+            const narrative_emergency = getVal('narrative-emergency');
+            const description = getVal('form-description');
+
+            const directCause = getVal('form-direct-cause');
+            const indirects = getDynamicValues('indirect-container');
+            const basics = getDynamicValues('basic-container');
+            const measures = getDynamicValues('measure-container');
+
+            return {
+                事故名稱: name,
+                事故屬性: attribute,
+                事故類型: type,
+                事故日期: date,
+                廠區: factory,
+                事故地點: location,
+                人員傷亡: casualty,
+                受傷員工類型: empType,
+                財物損失: loss,
+                reporter: reporter,
+                填報人員: reporter,
+                narrative_who,
+                narrative_when,
+                narrative_where,
+                narrative_what,
+                narrative_event,
+                narrative_emergency,
+                事發經過描述: description,
+                直接原因: directCause,
+                間接原因: indirects.join('；'),
+                基本原因: basics.join('；'),
+                改善措施: measures.join('；'),
+                indirects_list: indirects,
+                basics_list: basics,
+                measures_list: measures
+            };
+        }
+
+        // 更新右側 A4 調查報告預覽
+        function updatePreview() {
+            const data = getFormData();
+
+            // 基本表格欄位
+            const setText = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+
+            setText('preview-name', data.事故名稱 || '未填寫事故名稱');
+            setText('preview-attribute', data.事故屬性);
+            setText('preview-type', data.事故類型 || '未註明');
+            setText('preview-factory', data.廠區 || '未註明');
+            setText('preview-date', data.事故日期 || '未註明');
+            setText('preview-location', data.事故地點 || '未註明');
+            setText('preview-casualty', data.人員傷亡 || '無');
+            setText('preview-emp-type', data.受傷員工類型 || '無');
+            setText('preview-loss', data.財物損失 || '無');
+            setText('preview-reporter', data.reporter || '未註明');
+
+            // 事發經過六要素
+            setText('preview-who', data.narrative_who || '未註明');
+            setText('preview-when', data.narrative_when || '未註明');
+            setText('preview-where', data.narrative_where || '未註明');
+            setText('preview-what', data.narrative_what || '未註明');
+            
+            // 事發描述文字
+            setText('preview-description', data.事發經過描述 || '無事發經過描述，請點選左側「整合生成描述」或自行輸入。');
+
+            // 直接原因
+            setText('preview-direct-cause', data.直接原因 || '尚無分析');
+
+            // 間接原因分分條列出
+            const indirectUl = document.getElementById('preview-indirect-list');
+            if (indirectUl) {
+                indirectUl.innerHTML = '';
+                if (data.indirects_list.length === 0) {
+                    indirectUl.innerHTML = '<li class="text-slate-400 italic font-normal">尚無設定間接原因項目</li>';
+                } else {
+                    data.indirects_list.forEach(item => {
+                        indirectUl.insertAdjacentHTML('beforeend', `<li>${item}</li>`);
+                    });
+                }
+            }
+
+            // 基本原因分分條列出
+            const basicUl = document.getElementById('preview-basic-list');
+            if (basicUl) {
+                basicUl.innerHTML = '';
+                if (data.basics_list.length === 0) {
+                    basicUl.innerHTML = '<li class="text-slate-400 italic font-normal">尚無設定基本原因項目</li>';
+                } else {
+                    data.basics_list.forEach(item => {
+                        basicUl.insertAdjacentHTML('beforeend', `<li>${item}</li>`);
+                    });
+                }
+            }
+
+            // 改善措施分分條列出
+            const measureOl = document.getElementById('preview-measure-list');
+            if (measureOl) {
+                measureOl.innerHTML = '';
+                if (data.measures_list.length === 0) {
+                    measureOl.innerHTML = '<li class="text-emerald-600/50 italic font-normal">尚無擬定改善防範措施對策</li>';
+                } else {
+                    data.measures_list.forEach(item => {
+                        measureOl.insertAdjacentHTML('beforeend', `
+                            <li class="mb-1 text-slate-900">
+                                <span class="text-emerald-700 font-bold">[改善項目]</span> ${item}
+                            </li>
+                        `);
+                    });
+                }
+            }
+
+            // 同步回記憶體陣列中，確保清單和清單點選狀態完美對齊
+            if (accidentsList[activeIndex]) {
+                accidentsList[activeIndex] = { ...accidentsList[activeIndex], ...data };
+            }
+        }
+
+        // 綁定事件監聽
+        function setupEventListeners() {
+            // 表單內所有 input, select, textarea 改變時，都自動即時更新 A4 報告
+            const form = document.getElementById('report-form');
+            if (form) {
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    input.addEventListener('input', updatePreview);
+                    input.addEventListener('change', updatePreview);
+                });
+            }
+
+            // 搜尋過濾
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    renderAccidentsList(e.target.value);
+                });
+            }
+
+            // 生成描述按鈕
+            const btnGenStory = document.getElementById('btn-generate-story');
+            if (btnGenStory) {
+                btnGenStory.addEventListener('click', () => {
+                    generateStoryParagraph(true);
+                });
+            }
+
+            // [確認儲存並更新案件] 按鈕事件
+            const btnSaveReport = document.getElementById('btn-save-report');
+            if (btnSaveReport) {
+                btnSaveReport.addEventListener('click', () => {
+                    const data = getFormData();
+                    if (!data.事故名稱.trim()) {
+                        showToast("儲存失敗：事故名稱不可為空！", "alert-triangle");
+                        return;
+                    }
+                    if (accidentsList[activeIndex]) {
+                        accidentsList[activeIndex] = { ...accidentsList[activeIndex], ...data };
+                        const sInput = document.getElementById('search-input');
+                        renderAccidentsList(sInput ? sInput.value : '');
+                        showToast("此案件資料已確認儲存並更新清單！", "check-circle");
+                    }
+                });
+            }
+
+            // [另存為全新資料] 按鈕事件
+            const btnSaveAsNew = document.getElementById('btn-save-as-new');
+            if (btnSaveAsNew) {
+                btnSaveAsNew.addEventListener('click', () => {
+                    const data = getFormData();
+                    if (!data.事故名稱.trim()) {
+                        showToast("另存失敗：請輸入事故名稱！", "alert-triangle");
+                        return;
+                    }
+                    
+                    const newAcc = { ...data };
+                    newAcc.事故名稱 = `${data.事故名稱}_新存`;
+                    
+                    accidentsList.unshift(newAcc);
+                    activeIndex = 0; // 切換至此新案
+                    const sInput = document.getElementById('search-input');
+                    renderAccidentsList(sInput ? sInput.value : '');
+                    loadAccidentToForm(0);
+                    showToast("已成功將本案另存為一筆全新的事故資料！", "plus-circle");
+                });
+            }
+
+            // 建立新報告
+            const btnNewReport = document.getElementById('btn-new-report');
+            if (btnNewReport) {
+                btnNewReport.addEventListener('click', () => {
+                    const newAcc = {
+                        "事故名稱": `新事故調查報告_${Date.now().toString().substr(-4)}`,
+                        "事故屬性": "職災",
+                        "事故日期": new Date().toISOString().split('T')[0],
+                        "事故地點": "",
+                        "事故類型": "",
+                        "直接原因": "",
+                        "間接原因": "",
+                        "基本原因": "",
+                        "人員傷亡": "無",
+                        "受傷員工類型": "本公司員工",
+                        "財物損失": "無",
+                        "廠區": "",
+                        "改善措施": "",
+                        "narrative_who": "",
+                        "narrative_when": "",
+                        "narrative_where": "",
+                        "narrative_what": "",
+                        "narrative_event": "",
+                        "narrative_emergency": "",
+                        "事發經過描述": "",
+                        "reporter": ""
+                    };
+                    accidentsList.unshift(newAcc);
+                    activeIndex = 0;
+                    renderAccidentsList();
+                    loadAccidentToForm(0);
+                    showToast("全新調查報告已建置，請開始輸入內容！", "plus-circle");
+                });
+            }
+
+            // 複製純文字報告
+            const btnCopyText = document.getElementById('btn-copy-text');
+            if (btnCopyText) {
+                btnCopyText.addEventListener('click', () => {
+                    const data = getFormData();
+                    let text = `【事故調查報告書】\n`;
+                    text += `===================================\n`;
+                    text += `事故名稱：${data.事故名稱}\n`;
+                    text += `事故屬性：${data.事故屬性} | 事故類型：${data.事故類型}\n`;
+                    text += `發生日期：${data.事故日期} | 廠區：${data.廠區}\n`;
+                    text += `具體地點：${data.事故地點}\n`;
+                    text += `傷亡狀況：${data.人員傷亡} | 受傷員工：${data.受傷員工類型} | 財損：${data.財物損失}\n`;
+                    text += `填報人員：${data.reporter}\n`;
+                    text += `===================================\n`;
+                    text += `一、事發詳細經過描述（人事時地物與緊急處置）：\n`;
+                    text += `【人】關係人：${data.narrative_who || '未註明'}\n`;
+                    text += `【時】具體時間：${data.narrative_when || '未註明'}\n`;
+                    text += `【地】精確位置：${data.narrative_where || '未註明'}\n`;
+                    text += `【物】事涉設備：${data.narrative_what || '未註明'}\n`;
+                    text += `【情節描述】：\n${data.事發經過描述 || '無'}\n`;
+                    text += `===================================\n`;
+                    text += `二、事故原因分析：\n`;
+                    text += `1. 直接原因：${data.直接原因 || '無'}\n`;
+                    text += `2. 間接原因：\n`;
+                    data.indirects_list.forEach((it, i) => text += `   (${i+1}) ${it}\n`);
+                    text += `3. 基本原因：\n`;
+                    data.basics_list.forEach((it, i) => text += `   (${i+1}) ${it}\n`);
+                    text += `===================================\n`;
+                    text += `三、具體改善對策與防範措施：\n`;
+                    data.measures_list.forEach((it, i) => text += `   [對策 ${i+1}] ${it}\n`);
+                    
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast("事故報告內容已成功複製到剪貼簿！", "check-circle");
+                    } catch (err) {
+                        showToast("複製失敗，請手動複製右方預覽區文字。", "alert-triangle");
+                    }
+                    document.body.removeChild(textArea);
+                });
+            }
+
+            // 匯出 MS Word (Doc)
+            const btnDownloadDoc = document.getElementById('btn-download-doc');
+            if (btnDownloadDoc) {
+                btnDownloadDoc.addEventListener('click', () => {
+                    const data = getFormData();
+                    
+                    const docContent = `
+                        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+                        <head>
+                            <title>${data.事故名稱} 調查報告書</title>
+                            <meta charset="utf-8">
+                            <style>
+                                body { font-family: 'MS Gothic', 'Noto Sans TC', sans-serif; line-height: 1.5; color: #333; }
+                                table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+                                th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 13px; }
+                                .title { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+                                .subtitle { text-align: center; font-size: 11px; color: #666; margin-bottom: 20px; }
+                                h3 { font-size: 15px; border-bottom: 2px solid #333; padding-bottom: 5px; margin-top: 20px; margin-bottom: 10px; }
+                                ol, ul { padding-left: 20px; font-size: 13px; }
+                                li { margin-bottom: 5px; }
+                                .bg-slate-50 { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; margin-bottom: 10px; }
+                                .bg-indigo-50 { background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px; }
+                                .sign-area { margin-top: 50px; }
+                                .sign-table { width: 100%; border: none; }
+                                .sign-table td { border: none; text-align: center; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="title">【事故調查報告書】</div>
+                            <div class="subtitle">職業安全衛生法規申報標準格式 (勞動檢查處/上級機關備查用)</div>
+                            
+                            <table>
+                                <tr>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; width: 100px; text-align:center;">事故名稱</td>
+                                    <td colspan="3" style="font-weight: bold; font-size: 14px;">${data.事故名稱}</td>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; width: 100px; text-align:center;">調查日期</td>
+                                    <td>${document.getElementById('preview-report-date').textContent}</td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; text-align:center;">事故屬性</td>
+                                    <td style="color: red; font-weight: bold; text-align:center;">${data.事故屬性}</td>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; width: 100px; text-align:center;">事故類型</td>
+                                    <td style="text-align:center;">${data.事故類型 || '無'}</td>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; text-align:center;">廠區名稱</td>
+                                    <td style="text-align:center;">${data.廠區 || '無'}</td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; text-align:center;">發生時間</td>
+                                    <td style="text-align:center;">${data.事故日期}</td>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; text-align:center;">具體地點</td>
+                                    <td colspan="3">${data.事故地點}</td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; text-align:center;">傷亡狀況</td>
+                                    <td style="text-align:center;">${data.人員傷亡}</td>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; text-align:center;">受傷類型</td>
+                                    <td style="text-align:center;">${data.受傷員工類型}</td>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; text-align:center;">財物損失</td>
+                                    <td style="text-align:center;">${data.財物損失}</td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f1f5f9; font-weight: bold; text-align:center;">填報人員</td>
+                                    <td colspan="5">${data.reporter || '未註明'}</td>
+                                </tr>
+                            </table>
+
+                            <h3>一、事發詳細經過描述（包含人事時地物與緊急處置）</h3>
+                            <div class="bg-slate-50">
+                                <strong>【人】關係人員：</strong>${data.narrative_who || '未註明'}<br>
+                                <strong>【時】具體時間：</strong>${data.narrative_when || '未註明'}<br>
+                                <strong>【地】精確地點：</strong>${data.narrative_where || '未註明'}<br>
+                                <strong>【物】事涉設備/物質：</strong>${data.narrative_what || '未註明'}
+                            </div>
+                            <div style="background-color:#f8fafc; border:1px dashed #cbd5e1; padding:12px; margin-top:10px;">
+                                <strong>【經過情節與緊急處置】</strong><br>
+                                <p style="text-align: justify; margin-top:5px;">${data.事發經過描述 || '無描述'}</p>
+                            </div>
+
+                            <h3>二、事故原因分析（職安法基準）</h3>
+                            <p><strong>1. 直接原因：</strong>${data.直接原因 || '無'}</p>
+                            <p><strong>2. 間接原因：</strong></p>
+                            <ol>
+                                ${data.indirects_list.map(it => `<li>${it}</li>`).join('') || '<li>無</li>'}
+                            </ol>
+                            <p><strong>3. 基本原因：</strong></p>
+                            <ol>
+                                ${data.basics_list.map(it => `<li>${it}</li>`).join('') || '<li>無</li>'}
+                            </ol>
+
+                            <h3>三、具體改善對策與防範措施</h3>
+                            <ol>
+                                ${data.measures_list.map(it => `<li style="font-weight: bold;">[改善項目] ${it}</li>`).join('') || '<li>無項目</li>'}
+                            </ol>
+
+                            <div class="sign-area">
+                                <table class="sign-table">
+                                    <tr>
+                                        <td><p style="margin-bottom:30px; color:#666;">調查小組主管</p>_____________</td>
+                                        <td><p style="margin-bottom:30px; color:#666;">職業安全衛生人員</p>_____________</td>
+                                        <td><p style="margin-bottom:30px; color:#666;">部門主管/廠長</p>_____________</td>
+                                        <td><p style="margin-bottom:30px; color:#666;">總經理/雇主</p>_____________</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </body>
+                        </html>
+                    `;
+
+                    const blob = new Blob(['\ufeff' + docContent], { type: 'application/msword' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `事故調查報告_${data.事故名稱}_${data.事故日期}.doc`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    showToast("事故調查報告 Word 檔案產出成功，已啟動下載！", "check-circle");
+                });
+            }
+
+            // 產出 PDF 檔 (透過列印)
+            const btnPrintPdf = document.getElementById('btn-print-pdf');
+            if (btnPrintPdf) {
+                btnPrintPdf.addEventListener('click', () => {
+                    showToast("準備產出 PDF，請在列印對話框中選擇「另存為 PDF」！", "printer");
+                    setTimeout(() => {
+                        window.print();
+                    }, 500);
+                });
+            }
+
+            // CSV 檔案上傳讀取
+            const csvFileInput = document.getElementById('csv-file-input');
+            if (csvFileInput) {
+                csvFileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        const text = evt.target.result;
+                        parseCSVToAccidents(text);
+                    };
+                    reader.readAsText(file);
+                });
+            }
+        }
+
+        // CSV 簡單解析器
+        function parseCSVToAccidents(csvText) {
+            try {
+                const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+                if (lines.length < 2) {
+                    showToast("CSV 檔案內容不足！", "alert-triangle");
+                    return;
+                }
+
+                const headers = splitCSVLine(lines[0]);
+                
+                const loadedList = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const values = splitCSVLine(lines[i]);
+                    if (values.length < headers.length) continue; 
+
+                    const record = {};
+                    headers.forEach((header, index) => {
+                        record[header.trim()] = values[index] ? values[index].trim() : '';
+                    });
+
+                    record.事故名稱 = record.事故名稱 || record['﻿事故名稱'] || `CSV事故_${i}`;
+                    record.事故屬性 = record.事故屬性 || '職災';
+                    record.事故類型 = record.事故類型 || '';
+                    record.事故地點 = record.事故地點 || '';
+                    record.事故日期 = record.事故日期 ? record.事故日期.replace(/\//g, '-') : '';
+                    record.直接原因 = record.直接原因 || '';
+                    record.間接原因 = record.間接原因 || '';
+                    record.基本原因 = record.基本原因 || '';
+                    record.改善措施 = record.改善措施 || '';
+                    record.人員傷亡 = record.人員傷亡 || '無';
+                    record.受傷員工類型 = record.受傷員工類型 || '無';
+                    record.財物損失 = record.財物損失 || '無';
+                    record.廠區 = record.廠區 || '';
+                    record.reporter = record.填報人員 || '未註明';
+                    
+                    record.narrative_who = record.受傷員工類型 !== '無' ? `作業人員 (${record.受傷員工類型})` : '作業人員';
+                    record.narrative_when = record.事故日期 + " 作業期間";
+                    record.narrative_where = record.事故地點 || (record.廠區 + "廠作業區");
+                    record.narrative_what = record.事故類型 || "相關設備器具";
+                    record.narrative_event = `在該區域進行作業時，發生【${record.事故類型}】異常事故，導致不安全狀況。`;
+                    record.narrative_emergency = "當即拉下緊急停止閥門，採取緊急通報程序。";
+                    record.事發經過描述 = `事故當日，作業人員在${record.事故地點}進行作業時，因【${record.直接原因}】而不幸發生【${record.事故類型}】事故。現場立刻採取緊急救護，並通報相關工安人員處理。`;
+
+                    loadedList.push(record);
+                }
+
+                if (loadedList.length > 0) {
+                    accidentsList = loadedList;
+                    activeIndex = 0;
+                    renderAccidentsList();
+                    loadAccidentToForm(0);
+                    showToast(`成功匯入 ${loadedList.length} 筆事故紀錄！`, "check-circle");
+                } else {
+                    showToast("未解析到任何有效數據。", "alert-triangle");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("CSV 解析出錯，請確認格式是否正確。", "alert-triangle");
+            }
+        }
+
+        function splitCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+            return result.map(val => val.replace(/^"|"$/g, '').replace(/""/g, '"'));
+        }
+
+        // 提示框控制
+        function showToast(text, iconName = 'info') {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toast-text');
+            const toastIcon = document.getElementById('toast-icon');
+            if (!toast || !toastText || !toastIcon) return;
+
+            toastText.textContent = text;
+            toastIcon.setAttribute('data-lucide', iconName);
+            lucide.createIcons();
+
+            toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

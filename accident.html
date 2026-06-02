@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="scroll-smooth">
+<head>
+<style type="text/css">
+.inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+}
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.left {
+  text-align: left;
+}
+.right {
+  text-align: right;
+}
+.center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.sng {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.def {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EHS 安全衛生決策支援儀表板</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <!-- Apache ECharts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+  <!-- PapaParse for CSV Parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    
+    /* Active button styling */
+    .btn-month-active {
+      background-color: #3b82f6 !important;
+      color: #ffffff !important;
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100" id="body-theme">
+
+  <!-- Header Section -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+          <i class="fa-solid fa-shield-halved text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
+            EHS 安全衛生高階決策支援系統
+          </h1>
+          <p class="text-xs text-slate-400">Executive Safety Dashboard & Root Cause Analytics</p>
+        </div>
+      </div>
+
+      <!-- Right Side Tools & CSV Upload -->
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+        <!-- Theme Toggle -->
+        <button onclick="toggleTheme()" class="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition" title="切換主題">
+          <i class="fa-solid fa-circle-half-stroke text-sm" id="theme-icon"></i>
+        </button>
+
+        <!-- CSV Uploader Trigger Dropzone -->
+        <div id="dropzone" class="relative group cursor-pointer flex items-center gap-2 px-4 py-2 border border-dashed border-blue-500/50 hover:border-blue-400 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition">
+          <input type="file" id="csvFileInput" accept=".csv" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+          <i class="fa-solid fa-file-csv text-blue-400 text-lg group-hover:scale-110 transition duration-300"></i>
+          <div class="text-left text-xs">
+            <span class="font-semibold text-slate-200 block" id="upload-status">拖放或匯入 CSV 事故資料表</span>
+            <span class="text-slate-400 block text-[10px]" id="upload-details">當前已預載 EHS 示範數據</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+
+    <!-- Intelligent Executive Summary Box -->
+    <section class="bg-gradient-to-r from-blue-950/40 via-slate-900 to-indigo-950/40 border border-blue-500/20 rounded-2xl p-4 md:p-5 shadow-xl">
+      <div class="flex items-start gap-4">
+        <div class="p-2 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 shrink-0 hidden sm:block">
+          <i class="fa-solid fa-wand-magic-sparkles text-lg animate-pulse"></i>
+        </div>
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] uppercase font-bold tracking-widest rounded-full">AI Executive Summary</span>
+            <span class="text-xs text-slate-400">動態決策簡報速讀</span>
+          </div>
+          <p id="executiveSummary" class="text-sm text-slate-300 leading-relaxed">
+            系統正在分析數據中...
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters Area (Year range slider & Month Buttons) -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+      <!-- Year Slider Controller (Left 5 cols) -->
+      <div class="lg:col-span-5 bg-slate-800/80 border border-slate-700/50 rounded-2xl p-4 flex flex-col justify-between gap-4 shadow-lg">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping"></span>
+            <span class="text-xs font-semibold text-slate-400">年度拖拉監控滑桿</span>
+          </div>
+          <!-- Auto-Play Controller -->
+          <button id="playBtn" onclick="togglePlay()" class="flex items-center gap-1.5 px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs text-slate-200 transition">
+            <i class="fa-solid fa-play text-[10px]" id="playIcon"></i>
+            <span id="playText">自動播放</span>
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex justify-between text-[11px] font-mono text-slate-400 px-1" id="sliderLabels">
+            <!-- Dynamic Years labels here -->
+          </div>
+          <input type="range" id="yearSlider" min="2018" max="2026" step="1" value="2024" 
+                 class="w-full h-2.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500 transition duration-150 focus:outline-none"
+                 oninput="onYearSliderInput(this.value)" onchange="onYearSliderChange(this.value)">
+        </div>
+
+        <div class="flex items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/40">
+          <div class="text-xs text-slate-400">篩選年度</div>
+          <div class="text-2xl font-black font-mono text-blue-400" id="currentYearDisplay">2024</div>
+        </div>
+      </div>
+
+      <!-- Month Filter Buttons (Right 7 cols) -->
+      <div class="lg:col-span-7 bg-slate-800/80 border border-slate-700/50 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-lg">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-400">月份微觀篩選</span>
+          <span class="text-[10px] text-slate-500">按鍵切換數據即時重組</span>
+        </div>
+        
+        <div class="grid grid-cols-4 sm:grid-cols-7 gap-1.5" id="monthFilterContainer">
+          <button onclick="setMonthFilter('all')" id="mBtn-all" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200 btn-month-active">全年度</button>
+          <!-- 12 Months buttons dynamically/statically created -->
+          <button onclick="setMonthFilter('01')" id="mBtn-01" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">1月</button>
+          <button onclick="setMonthFilter('02')" id="mBtn-02" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">2月</button>
+          <button onclick="setMonthFilter('03')" id="mBtn-03" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">3月</button>
+          <button onclick="setMonthFilter('04')" id="mBtn-04" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">4月</button>
+          <button onclick="setMonthFilter('05')" id="mBtn-05" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">5月</button>
+          <button onclick="setMonthFilter('06')" id="mBtn-06" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">6月</button>
+          <button onclick="setMonthFilter('07')" id="mBtn-07" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">7月</button>
+          <button onclick="setMonthFilter('08')" id="mBtn-08" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">8月</button>
+          <button onclick="setMonthFilter('09')" id="mBtn-09" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">9月</button>
+          <button onclick="setMonthFilter('10')" id="mBtn-10" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">10月</button>
+          <button onclick="setMonthFilter('11')" id="mBtn-11" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">11月</button>
+          <button onclick="setMonthFilter('12')" id="mBtn-12" class="px-2 py-2 text-xs font-medium border border-slate-700 rounded-xl bg-slate-900/30 text-slate-300 hover:bg-slate-700 hover:text-white transition duration-200">12月</button>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-400 bg-slate-900/60 px-3 py-2 rounded-xl border border-slate-700/40">
+          <div>當前所選過濾區間</div>
+          <div class="font-semibold text-slate-200" id="filterStatusLabel">2024年 全年度</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- First Row of KPI Cards (Cumulative Attribute Counts & Cost Details) -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Card: Near Miss -->
+      <div class="bg-slate-800/60 border border-slate-700/50 hover:border-blue-500/50 rounded-2xl p-5 shadow-lg transition duration-300 hover:-translate-y-1 relative overflow-hidden group">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition"></div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-bold text-slate-400 tracking-wider">累積虛驚事故</span>
+          <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-black font-mono text-blue-400" id="nearMissCount">0</span>
+          <span class="text-xs text-slate-400">件</span>
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-400">
+          <span>佔總事故比率</span>
+          <span class="font-semibold text-blue-400" id="nearMissRatio">0.0%</span>
+        </div>
+      </div>
+
+      <!-- Card: Occupational Disaster -->
+      <div class="bg-slate-800/60 border border-slate-700/50 hover:border-rose-500/50 rounded-2xl p-5 shadow-lg transition duration-300 hover:-translate-y-1 relative overflow-hidden group">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-full blur-xl group-hover:bg-rose-500/20 transition"></div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-bold text-slate-400 tracking-wider">累積職災事故</span>
+          <div class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center">
+            <i class="fa-solid fa-user-injured"></i>
+          </div>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-3xl font-black font-mono text-rose-400" id="disasterCount">0</span>
+          <span class="text-xs text-slate-400">件</span>
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-400">
+          <span>佔總事故比率</span>
+          <span class="font-semibold text-rose-400" id="disasterRatio">0.0%</span>
+        </div>
+      </div>
+
+      <!-- Card: Property Loss -->
+      <div class="bg-slate-800/60 border border-slate-700/50 hover:border-amber-500/50 rounded-2xl p-5 shadow-lg transition duration-300 hover:-translate-y-1 relative overflow-hidden group">
+        <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition"></div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-bold text-slate-400 tracking-wider">累積財損事故</span>
+          <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+            <i class="fa-solid fa-house-fire"></i>
+          </div>
+        </div>
+        <div class="flex items-baseline justify-between">
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-black font-mono text-amber-400" id="propertyLossCount">0</span>
+            <span class="text-xs text-slate-400">件</span>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-slate-400 block">預估財損總額</span>
+            <span class="text-sm font-bold text-amber-400 font-mono" id="propertyLossValue">$0 萬</span>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center text-xs text-slate-400">
+          <span>佔總事故比率</span>
+          <span class="font-semibold text-amber-400" id="propertyLossRatio">0.0%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Second Row of KPIs (Plant stats, top types, casualties, contractor stats) -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Box 1: Factory stats & percentage contribution (RESTRICTED to Occupational Disaster) -->
+      <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-slate-700/50 mb-4">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-industry text-rose-400"></i>
+              <span class="text-xs font-bold text-slate-200">各廠累計數量與占比 (限職災類型)</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400">廠區職災指標</span>
+          </div>
+          
+          <div class="space-y-4" id="plantDisastersList">
+            <!-- Dynamically generated progress bars of plant disaster distribution -->
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-700/30 text-[11px] text-slate-400 flex justify-between items-center">
+          <span>指標定義：特定區間內之「職災」佔比</span>
+          <i class="fa-solid fa-circle-info"></i>
+        </div>
+      </div>
+
+      <!-- Box 2: Top 3 Incident Types & Casualties Statistics -->
+      <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 shadow-lg flex flex-col justify-between space-y-4">
+        <!-- Top 3 Accident Types -->
+        <div>
+          <div class="flex items-center gap-2 pb-2 border-b border-slate-700/50 mb-3">
+            <i class="fa-solid fa-ranking-star text-amber-400"></i>
+            <span class="text-xs font-bold text-slate-200">前三大事故類型排行</span>
+          </div>
+          <div class="space-y-2.5" id="topAccidentTypes">
+            <!-- Dynamically populated top 3 types -->
+          </div>
+        </div>
+
+        <!-- Casualty statistics in Occupational Disasters -->
+        <div>
+          <div class="flex items-center gap-2 pb-2 border-b border-slate-700/50 mb-3">
+            <i class="fa-solid fa-skull-crossbones text-rose-500"></i>
+            <span class="text-xs font-bold text-slate-200">職災事故傷亡累計</span>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-900/40 border border-red-500/20 p-3 rounded-xl flex items-center justify-between">
+              <div>
+                <span class="text-[10px] text-slate-400 block">死亡人數</span>
+                <span class="text-2xl font-black text-rose-500 font-mono" id="casualtyDeaths">0</span>
+                <span class="text-xs text-slate-400 ml-1">員</span>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                <i class="fa-solid fa-skull"></i>
+              </div>
+            </div>
+            
+            <div class="bg-slate-900/40 border border-orange-500/20 p-3 rounded-xl flex items-center justify-between">
+              <div>
+                <span class="text-[10px] text-slate-400 block">受傷人數</span>
+                <span class="text-2xl font-black text-amber-500 font-mono" id="casualtyInjuries">0</span>
+                <span class="text-xs text-slate-400 ml-1">員</span>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <i class="fa-solid fa-truck-medical"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Box 3: Contractor Accident Ranking (RESTRICTED to Occupational Disaster, showing Plant + Contractor) -->
+      <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-slate-700/50 mb-4">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-helmet-safety text-amber-400"></i>
+              <span class="text-xs font-bold text-slate-200">承攬商事故排名 (限職災類型)</span>
+            </div>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">承攬商與廠區</span>
+          </div>
+          
+          <div class="space-y-3" id="contractorRankingList">
+            <!-- Dynamically populated contractor disasters rankings (Contractor & Plant name paired) -->
+          </div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-700/30 text-[11px] text-slate-400 flex justify-between items-center">
+          <span>統計僅包含：受傷員工類型為「承攬商」者</span>
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- Visual Dashboard Charts Row -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Chart: Accident Attribute Trend (Left 4 cols) -->
+      <div class="lg:col-span-4 bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-200 mb-1 flex items-center gap-2">
+            <i class="fa-solid fa-chart-line text-blue-400"></i>
+            事故屬性月度趨勢圖
+          </h3>
+          <p class="text-[10px] text-slate-400 mb-4">呈現選定年度內，事故類型的月度波動與消長</p>
+        </div>
+        <div class="w-full h-64" id="trendChartContainer"></div>
+      </div>
+
+      <!-- Chart: Factory ranking (Middle 4 cols) -->
+      <div class="lg:col-span-4 bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-200 mb-1 flex items-center gap-2">
+            <i class="fa-solid fa-chart-bar text-emerald-400"></i>
+            各廠排名與事故分佈圖
+          </h3>
+          <p class="text-[10px] text-slate-400 mb-4">排序各廠區累計事故，並以屬性堆疊細分</p>
+        </div>
+        <div class="w-full h-64" id="rankChartContainer"></div>
+      </div>
+
+      <!-- Chart: Compound Annual Growth Rate (CAGR) (Right 4 cols) -->
+      <div class="lg:col-span-4 bg-slate-800/60 border border-slate-700/50 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+        <div>
+          <h3 class="text-xs font-bold text-slate-200 mb-1 flex items-center gap-2">
+            <i class="fa-solid fa-chart-area text-rose-400"></i>
+            廠區複合年增長率 (CAGR) 分析圖
+          </h3>
+          <p class="text-[10px] text-slate-400 mb-4">安全防護成長性：若為「負值」代表事故逐年遞減 (優)</p>
+        </div>
+        <div class="w-full h-64" id="cagrChartContainer"></div>
+      </div>
+    </section>
+
+    <!-- Accident Ledger Table Row -->
+    <section class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-5 shadow-lg">
+      <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-700/50 mb-4">
+        <div>
+          <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-table-list text-blue-400"></i>
+            事故明細總表 (點選任何一列可開啟細部調查報告)
+          </h3>
+          <p class="text-xs text-slate-400 mt-1">互動式查詢模組，包含改善與預防措施追蹤</p>
+        </div>
+
+        <!-- Filter Controls Inside Table Header -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Search Input -->
+          <div class="relative min-w-[200px]">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            </span>
+            <input type="text" id="searchTableInput" onkeyup="filterLedgerTable()" placeholder="搜尋事故、原因、承攬商..." 
+                   class="w-full pl-9 pr-4 py-1.5 text-xs rounded-xl bg-slate-900 border border-slate-700 text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+
+          <!-- Plant Quick Filter -->
+          <select id="tablePlantFilter" onchange="filterLedgerTable()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none">
+            <option value="all">所有廠區</option>
+            <option value="桃園">桃園</option>
+            <option value="林園">林園</option>
+            <option value="大林">大林</option>
+            <option value="永安">永安</option>
+            <option value="台中">台中</option>
+          </select>
+
+          <!-- Contractor List Selector Filter (NEW FEATURE) -->
+          <select id="tableContractorFilter" onchange="filterLedgerTable()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none max-w-[160px]">
+            <option value="all">所有承攬商</option>
+            <!-- Automatically populated inside js -->
+          </select>
+
+          <!-- Attribute Quick Filter -->
+          <select id="tableAttrFilter" onchange="filterLedgerTable()" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none">
+            <option value="all">所有屬性</option>
+            <option value="虛驚">虛驚</option>
+            <option value="職災">職災</option>
+            <option value="財損">財損</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Interactive Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300 border-collapse">
+          <thead>
+            <tr class="bg-slate-900/80 text-slate-400 border-b border-slate-700/60 uppercase font-semibold">
+              <th class="px-4 py-3">事故名稱</th>
+              <th class="px-4 py-3">屬性</th>
+              <th class="px-4 py-3">日期</th>
+              <th class="px-4 py-3">類型</th>
+              <th class="px-4 py-3">承攬商</th> <!-- Added Contractor column -->
+              <th class="px-4 py-3">傷亡狀況</th>
+              <th class="px-4 py-3">受傷員工類型</th>
+              <th class="px-4 py-3">財產損失</th>
+              <th class="px-4 py-3">廠區</th>
+            </tr>
+          </thead>
+          <tbody id="accidentTableBody" class="divide-y divide-slate-700/40">
+            <!-- Dynamically rendered table rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination/Footer Info -->
+      <div class="flex items-center justify-between text-[11px] text-slate-400 pt-4 mt-2">
+        <span id="tableRecordCountInfo">顯示 0 到 0 筆事故，共 0 筆</span>
+        <div class="flex gap-1" id="tablePagination">
+          <!-- Dynamically populated page control buttons if too many rows -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Detailed Incident Report Modal (EHS Investigation Card) -->
+  <div id="reportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-fade-in">
+    <div class="bg-slate-900 border border-slate-700/80 w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden transition-all duration-300">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 bg-slate-800/50 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="p-1.5 bg-rose-500/10 rounded-lg text-rose-400" id="modalHeaderIcon">
+            <i class="fa-solid fa-file-shield"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-100">職業安全衛生 事故調查與分析報告書</h3>
+            <p class="text-[10px] text-slate-400" id="modalIncidentId">編號：--</p>
+          </div>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Detailed Report Structure) -->
+      <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto" id="modalContent">
+        
+        <!-- Header Info Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-950/40 p-4 rounded-xl border border-slate-800">
+          <div>
+            <span class="text-[10px] text-slate-500 block font-semibold">事故廠區</span>
+            <span class="text-xs font-bold text-slate-200" id="mPlant">--</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-500 block font-semibold">事故屬性</span>
+            <span class="px-2 py-0.5 inline-block text-[10px] font-bold rounded-full" id="mAttribute">--</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-500 block font-semibold">發生時間</span>
+            <span class="text-xs font-mono font-bold text-slate-200" id="mDate">--</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-500 block font-semibold">事故類型</span>
+            <span class="text-xs font-bold text-slate-200" id="mType">--</span>
+          </div>
+        </div>
+
+        <!-- Incident Summary -->
+        <div class="space-y-1">
+          <h4 class="text-xs font-bold text-slate-400">事故名稱</h4>
+          <p class="text-sm font-bold text-blue-400" id="mName">--</p>
+        </div>
+
+        <!-- Casualties, Contractor & Loss Detail -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-slate-800/30 p-3 rounded-lg border border-slate-800/60">
+            <span class="text-[10px] text-slate-500 block font-bold">人員傷亡狀態</span>
+            <span class="text-xs font-bold text-slate-300" id="mCasualty">--</span>
+          </div>
+          <div class="bg-slate-800/30 p-3 rounded-lg border border-slate-800/60">
+            <span class="text-[10px] text-slate-500 block font-bold">受傷員工類型</span>
+            <span class="text-xs font-bold text-slate-300" id="mInjuredType">--</span>
+          </div>
+          <!-- Newly added Contractor details in modal -->
+          <div class="bg-slate-800/30 p-3 rounded-lg border border-slate-800/60">
+            <span class="text-[10px] text-slate-500 block font-bold">承攬商名稱</span>
+            <span class="text-xs font-bold text-blue-400 animate-pulse" id="mContractor">--</span>
+          </div>
+          <div class="bg-slate-800/30 p-3 rounded-lg border border-slate-800/60">
+            <span class="text-[10px] text-slate-500 block font-bold">財務財產損失</span>
+            <span class="text-xs font-bold text-amber-400" id="mPropertyLoss">--</span>
+          </div>
+        </div>
+
+        <!-- Root Cause Analysis Chain -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-code-branch text-emerald-400"></i>
+            事故根本原因追溯分析鏈 (Root Cause Analysis)
+          </h4>
+          
+          <div class="space-y-2">
+            <!-- Direct Cause -->
+            <div class="flex items-start gap-3 bg-slate-950/20 p-3 rounded-lg border border-slate-800/80">
+              <div class="px-2 py-1 bg-red-500/10 text-red-400 text-[9px] font-bold tracking-wider rounded uppercase shrink-0 mt-0.5">直接原因</div>
+              <p class="text-xs text-slate-300" id="mDirectCause">--</p>
+            </div>
+            
+            <!-- Indirect Cause -->
+            <div class="flex items-start gap-3 bg-slate-950/20 p-3 rounded-lg border border-slate-800/80">
+              <div class="px-2 py-1 bg-amber-500/10 text-amber-400 text-[9px] font-bold tracking-wider rounded uppercase shrink-0 mt-0.5">間接原因</div>
+              <p class="text-xs text-slate-300" id="mIndirectCause">--</p>
+            </div>
+            
+            <!-- Basic Cause -->
+            <div class="flex items-start gap-3 bg-slate-950/20 p-3 rounded-lg border border-slate-800/80">
+              <div class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[9px] font-bold tracking-wider rounded uppercase shrink-0 mt-0.5">基本原因</div>
+              <p class="text-xs text-slate-300" id="mBasicCause">--</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Plan & Corrective Measures -->
+        <div class="bg-gradient-to-r from-emerald-950/30 to-slate-900 border border-emerald-500/20 p-4 rounded-xl space-y-2">
+          <h4 class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check"></i>
+            改善及預防對策措施 (Corrective Measures Tracked)
+          </h4>
+          <p class="text-xs text-slate-300 leading-relaxed" id="mImprovement">--</p>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-4 border-t border-slate-800 bg-slate-800/20 flex items-center justify-between text-xs text-slate-500">
+        <span>此調查報告已於 EHS 工安體系建檔追蹤</span>
+        <button onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition">
+          關閉報告
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="max-w-7xl mx-auto px-6 py-8 border-t border-slate-800 text-center text-xs text-slate-500 space-y-2">
+    <p>© 2026 EHS 工安智能決策大腦. All rights reserved.</p>
+    <p>智慧平台與各廠安全監管系統全自動同步並即時產出統計</p>
+  </footer>
+
+  <!-- Core Javascript Implementation -->
+  <script>
+    // System Theme State
+    let isDark = true;
+    
+    // Core Application State
+    let originalDataset = [];
+    let currentDataset = [];
+    let filteredDataset = [];
+    
+    // Filters State
+    let selectedYear = "2024";
+    let selectedMonth = "all"; // 'all' or '01'-'12'
+    
+    // Animation Play Interval Identifier
+    let playInterval = null;
+    let isPlaying = false;
+    
+    // Chart instances references
+    let trendChart = null;
+    let rankChart = null;
+    let cagrChart = null;
+
+    // Default plants list
+    const plantsList = ["桃園", "林園", "大林", "永安", "台中"];
+
+    // Initialize the Web Page
+    window.onload = function() {
+      // 1. Initialize ECharts Instances
+      initCharts();
+
+      // 2. Generate and Load Mock Dataset initially (for instant load and showcase)
+      const mockData = generateMockDataset();
+      loadDataset(mockData);
+
+      // 3. Setup File Input listener
+      setupFileInput();
+      
+      // 4. Handle Window Resize for charts
+      window.addEventListener('resize', function() {
+        if (trendChart) trendChart.resize();
+        if (rankChart) rankChart.resize();
+        if (cagrChart) cagrChart.resize();
+      });
+    };
+
+    // Initialize Apache ECharts configurations
+    function initCharts() {
+      const getTheme = () => (isDark ? 'dark' : 'light');
+      
+      trendChart = echarts.init(document.getElementById('trendChartContainer'), getTheme());
+      rankChart = echarts.init(document.getElementById('rankChartContainer'), getTheme());
+      cagrChart = echarts.init(document.getElementById('cagrChartContainer'), getTheme());
+    }
+
+    // Generate high quality mock data matching user schema (years: 2018 to 2026)
+    function generateMockDataset() {
+      const attributes = ["虛驚", "職災", "財損"];
+      const types = ["氣體洩漏", "超壓", "切割傷", "墜落", "夾傷", "洩漏", "感電", "火災", "車輛事故"];
+      const injuredTypes = ["自己員工", "承攬商", "無"];
+      
+      const directCauses = [
+        "設備異常或作業失誤", "重物擊中或高處墜落", "人員操作不當", "安全裝置失效", "化學品洩漏"
+      ];
+      const indirectCauses = [
+        "未落實危害辨識；教育訓練不足", "設備老舊；防護具不全", "現場環境雜亂；作業程序不完備", "監督查核不足；警告標示不明", "材料疲勞；通訊聯繫錯誤"
+      ];
+      const basicCauses = [
+        "工安文化待提升；預防保養落實度低", "管理制度不健全；安全意識薄弱", "承攬管理缺失；風險評估不到位", "設施維護管理不當；工安文化待提升"
+      ];
+      const casualtyOptions = [
+        { text: "無", deaths: 0, injuries: 0 },
+        { text: "1人受傷", deaths: 0, injuries: 1 },
+        { text: "2人受傷", deaths: 0, injuries: 2 },
+        { text: "1人死亡", deaths: 1, injuries: 0 },
+        { text: "1人死亡, 2人受傷", deaths: 1, injuries: 2 },
+        { text: "2人死亡", deaths: 2, injuries: 0 }
+      ];
+      const improvementMeasures = [
+        "加強人員教育訓練；增設安全監控設備", "落實動火許可制度；修訂標準作業程序", "更新老舊管線；增設安全監控設備", "增加設備巡檢頻率；落實動火許可制度", "落實動火許可制度；定期辦理緊急應變演練"
+      ];
+
+      const list = [];
+      let id = 1;
+
+      // Generating cascading trends: safer with time (declining accidents)
+      for (let year = 2018; year <= 2026; year++) {
+        const count = Math.floor(18 + (2026 - year) * 3 + Math.random() * 8); 
+        for (let i = 0; i < count; i++) {
+          const plant = plantsList[Math.floor(Math.random() * plantsList.length)];
+          const attr = attributes[Math.floor(Math.random() * attributes.length)];
+          
+          let injured = "無";
+          let casualty = "無";
+          let loss = "無";
+          
+          if (attr === "職災") {
+            injured = injuredTypes[Math.floor(Math.random() * 2)]; // "自己員工" or "承攬商"
+            const cas = casualtyOptions[Math.floor(Math.random() * (casualtyOptions.length - 1)) + 1]; 
+            casualty = cas.text;
+          } else if (attr === "財損") {
+            loss = Math.floor(10 + Math.random() * 120) + "萬";
+          }
+          
+          const type = types[Math.floor(Math.random() * types.length)];
+          const month = String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
+          const day = String(Math.floor(Math.random() * 28) + 1).padStart(2, '0');
+          const date = `${year}/${month}/${day}`;
+          
+          list.push({
+            "事故名稱": `${plant}廠${type}${attr}事故_${id++}`,
+            "事故屬性": attr,
+            "事故日期": date,
+            "事故地點": `${plant}廠作業區`,
+            "事故類型": type,
+            "直接原因": directCauses[Math.floor(Math.random() * directCauses.length)],
+            "間接原因": indirectCauses[Math.floor(Math.random() * indirectCauses.length)],
+            "基本原因": basicCauses[Math.floor(Math.random() * basicCauses.length)],
+            "人員傷亡": casualty,
+            "受傷員工類型": injured,
+            "財物損失": loss,
+            "廠區": plant,
+            "改善措施": improvementMeasures[Math.floor(Math.random() * improvementMeasures.length)]
+          });
+        }
+      }
+      return list;
+    }
+
+    // Smart Contractor Resolver & Preprocessor (Stable pseudo-contractor name generation if column missing)
+    function resolveContractor(row, idx) {
+      // 1. Look for explicit column headers in CSV
+      const keys = Object.keys(row);
+      const contractorKey = keys.find(k => k === "承攬商" || k === "承包商" || k === "承攬商名稱" || k === "外包商");
+      
+      if (contractorKey && row[contractorKey] && row[contractorKey] !== "無" && row[contractorKey] !== "N/A" && row[contractorKey] !== "") {
+        return row[contractorKey];
+      }
+
+      // 2. If injured type is contractor, automatically generate a stable name using a simple name-hash
+      if (row["受傷員工類型"] === "承攬商") {
+        const contractorNames = ["裕民防蝕", "長禹營造", "台欣機電", "協勝起重", "鼎基工程", "聯華氣體", "港都起重", "茂源工程", "宏大運輸"];
+        const nameSeed = row["事故名稱"] || ("INC_" + idx);
+        let hash = 0;
+        for (let i = 0; i < nameSeed.length; i++) {
+          hash = nameSeed.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash) % contractorNames.length;
+        return contractorNames[index];
+      }
+      
+      return "無";
+    }
+
+    // Parse uploaded CSV file using PapaParse
+    function setupFileInput() {
+      const input = document.getElementById('csvFileInput');
+      const statusEl = document.getElementById('upload-status');
+      const detailsEl = document.getElementById('upload-details');
+
+      input.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        statusEl.textContent = "解析中...";
+        detailsEl.textContent = file.name;
+
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function(results) {
+            const data = results.data;
+            if (data.length > 0 && data[0]["事故名稱"] && data[0]["事故屬性"] && data[0]["事故日期"]) {
+              loadDataset(data);
+              statusEl.textContent = "已匯入自訂事故資料";
+              detailsEl.textContent = `共 ${data.length} 筆真實數據`;
+              statusEl.classList.remove('text-slate-200');
+              statusEl.classList.add('text-emerald-400');
+            } else {
+              statusEl.textContent = "CSV 格式不符合要求";
+              detailsEl.textContent = "欄位需與原本規格吻合";
+              statusEl.classList.add('text-red-400');
+            }
+          },
+          error: function() {
+            statusEl.textContent = "檔案讀取錯誤";
+            statusEl.classList.add('text-red-400');
+          }
+        });
+      });
+    }
+
+    // Populate contractor filter dropdown dynamically based on unique contractors
+    function populateContractorFilterDropdown() {
+      const select = document.getElementById("tableContractorFilter");
+      if (!select) return;
+
+      // Keep default choice
+      select.innerHTML = '<option value="all">所有承攬商</option>';
+
+      const uniqueContractors = new Set();
+      currentDataset.forEach(d => {
+        if (d["承攬商"] && d["承攬商"] !== "無") {
+          uniqueContractors.add(d["承攬商"]);
+        }
+      });
+
+      const sortedContractors = Array.from(uniqueContractors).sort();
+      sortedContractors.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        select.appendChild(opt);
+      });
+    }
+
+    // Core loader for datasets: setups slider dynamic ranges
+    function loadDataset(data) {
+      // Preprocess each row to ensure a stable "承攬商" property is resolved
+      data.forEach((d, idx) => {
+        d["承攬商"] = resolveContractor(d, idx);
+      });
+
+      originalDataset = data;
+      currentDataset = data;
+
+      // Extract min and max years automatically from dataset
+      const years = data.map(d => {
+        const yr = new Date(d["事故日期"]).getFullYear();
+        return isNaN(yr) ? null : yr;
+      }).filter(Boolean);
+
+      const minYear = Math.min(...years);
+      const maxYear = Math.max(...years);
+
+      const slider = document.getElementById("yearSlider");
+      slider.min = minYear;
+      slider.max = maxYear;
+
+      // Set default selected year to maximum available
+      selectedYear = String(maxYear);
+      slider.value = maxYear;
+      document.getElementById("currentYearDisplay").textContent = selectedYear;
+
+      // Re-generate Year Slider Mark Labels
+      renderSliderMarks(minYear, maxYear);
+
+      // Re-populate contractor drop-down dynamically
+      populateContractorFilterDropdown();
+
+      // Re-evaluate table filter dropdown selections
+      updateDashboard();
+    }
+
+    // Dynamic generation of slider year marks
+    function renderSliderMarks(min, max) {
+      const container = document.getElementById("sliderLabels");
+      container.innerHTML = "";
+      
+      const step = Math.max(1, Math.round((max - min) / 6));
+      
+      for (let y = min; y <= max; y += step) {
+        const span = document.createElement("span");
+        span.textContent = y;
+        span.className = "cursor-pointer hover:text-blue-400 transition font-mono";
+        span.onclick = () => {
+          document.getElementById("yearSlider").value = y;
+          onYearSliderChange(y);
+        };
+        container.appendChild(span);
+      }
+      
+      if ((max - min) % step !== 0) {
+        const span = document.createElement("span");
+        span.textContent = max;
+        span.className = "cursor-pointer hover:text-blue-400 transition font-mono";
+        span.onclick = () => {
+          document.getElementById("yearSlider").value = max;
+          onYearSliderChange(max);
+        };
+        container.appendChild(span);
+      }
+    }
+
+    // Live update while dragging range slider
+    function onYearSliderInput(val) {
+      document.getElementById("currentYearDisplay").textContent = val;
+    }
+
+    // Complete update when sliding interaction stops
+    function onYearSliderChange(val) {
+      selectedYear = String(val);
+      document.getElementById("currentYearDisplay").textContent = val;
+      updateDashboard();
+    }
+
+    // Change micro Month filter
+    function setMonthFilter(month) {
+      selectedMonth = month;
+      
+      // Update styling
+      const buttons = document.querySelectorAll('#monthFilterContainer button');
+      buttons.forEach(btn => btn.classList.remove('btn-month-active'));
+      
+      document.getElementById(`mBtn-${month}`).classList.add('btn-month-active');
+      
+      updateDashboard();
+    }
+
+    // Core Dashboard Dynamic Computing & Rendering Master Method
+    function updateDashboard() {
+      // 1. Refresh Selected Filter display labels
+      const monthLabel = selectedMonth === 'all' ? '全年度' : `${parseInt(selectedMonth)}月`;
+      document.getElementById("filterStatusLabel").textContent = `${selectedYear}年 ${monthLabel}`;
+
+      // 2. Filter dataset dynamically by Year and Month
+      filteredDataset = currentDataset.filter(d => {
+        const dateObj = new Date(d["事故日期"]);
+        const yr = String(dateObj.getFullYear());
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        
+        const matchesYear = (yr === selectedYear);
+        const matchesMonth = (selectedMonth === 'all' || m === selectedMonth);
+        
+        return matchesYear && matchesMonth;
+      });
+
+      // 3. Compute Basic KPI Totals (Near Miss, Injury, Loss)
+      computeCoreKPIs();
+
+      // 4. Compute Custom Safety Insights & Statistics
+      computePlantDisastersDistribution();
+      computeCasualtiesStatistics();
+      computeTopAccidentTypes();
+      computeContractorRanking();
+
+      // 5. Render ECharts components
+      renderTrendChart();
+      renderRankChart();
+      renderCAGRChart();
+
+      // 6. Build the Interactive Ledger Table
+      filterLedgerTable();
+
+      // 7. Dynamic AI Executive summary generator
+      generateExecutiveInsightSummary();
+    }
+
+    // Parser for casualties within the 人員傷亡 column
+    function parseCasualtyData(val) {
+      let deaths = 0;
+      let injuries = 0;
+      if (!val || val === '無') return { deaths, injuries };
+      
+      const deathMatch = val.match(/(\d+)\s*人?\s*(死亡|身亡|亡)/);
+      if (deathMatch) deaths = parseInt(deathMatch[1]);
+      
+      const injuryMatch = val.match(/(\d+)\s*人?\s*(受傷|傷|輕傷|重傷)/);
+      if (injuryMatch) injuries = parseInt(injuryMatch[1]);
+
+      if (deaths === 0 && injuries === 0) {
+        const numMatch = val.match(/(\d+)/);
+        if (numMatch) {
+          if (val.includes('死') || val.includes('亡')) deaths = parseInt(numMatch[1]);
+          else injuries = parseInt(numMatch[1]);
+        }
+      }
+      return { deaths, injuries };
+    }
+
+    // Parser for estimated costs within the 財物損失 column
+    function parsePropertyLossCost(val) {
+      if (!val || val === '無') return 0;
+      const str = String(val);
+      const match = str.match(/(\d+(\.\d+)?)/);
+      if (!match) return 0;
+      let cost = parseFloat(match[1]);
+      if (str.includes('萬')) {
+        return cost; // in 10,000 units
+      }
+      return cost / 10000; 
+    }
+
+    // KPI Card computations
+    function computeCoreKPIs() {
+      const totals = filteredDataset.length;
+      
+      let nearMiss = 0;
+      let disaster = 0;
+      let property = 0;
+      let totalLossCost = 0;
+
+      filteredDataset.forEach(d => {
+        const attr = d["事故屬性"];
+        if (attr === "虛驚") nearMiss++;
+        else if (attr === "職災") disaster++;
+        else if (attr === "財損") {
+          property++;
+          totalLossCost += parsePropertyLossCost(d["財物損失"]);
+        }
+      });
+
+      // Update counters in cards
+      document.getElementById("nearMissCount").textContent = nearMiss;
+      document.getElementById("disasterCount").textContent = disaster;
+      document.getElementById("propertyLossCount").textContent = property;
+      document.getElementById("propertyLossValue").textContent = `$${totalLossCost.toFixed(0)} 萬`;
+
+      // Update percentage distributions
+      const ratio = (cnt) => totals > 0 ? ((cnt / totals) * 100).toFixed(1) + '%' : '0.0%';
+      document.getElementById("nearMissRatio").textContent = ratio(nearMiss);
+      document.getElementById("disasterRatio").textContent = ratio(disaster);
+      document.getElementById("propertyLossRatio").textContent = ratio(property);
+    }
+
+    // KPI Box 1: Plant injury distribution (Restricted to "職災")
+    function computePlantDisastersDistribution() {
+      const container = document.getElementById("plantDisastersList");
+      container.innerHTML = "";
+
+      const plantCounts = {};
+      plantsList.forEach(p => plantCounts[p] = 0);
+      let totalDisastersInPeriod = 0;
+
+      filteredDataset.forEach(d => {
+        if (d["事故屬性"] === "職災" && plantCounts[d["廠區"]] !== undefined) {
+          plantCounts[d["廠區"]]++;
+          totalDisastersInPeriod++;
+        }
+      });
+
+      // Sort plants descending by disasters
+      const sortedPlants = Object.entries(plantCounts).sort((a, b) => b[1] - a[1]);
+
+      if (totalDisastersInPeriod === 0) {
+        container.innerHTML = `
+          <div class="py-8 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2">
+            <i class="fa-solid fa-face-smile text-lg text-emerald-400"></i>
+            <span>本區間無任何職災事故紀錄</span>
+          </div>
+        `;
+        return;
+      }
+
+      sortedPlants.forEach(([plant, count]) => {
+        const ratio = ((count / totalDisastersInPeriod) * 100).toFixed(1);
+        
+        const row = document.createElement("div");
+        row.className = "space-y-1";
+        row.innerHTML = `
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-slate-300">${plant}廠區</span>
+            <div class="space-x-1.5 font-mono">
+              <span class="text-rose-400 font-bold">${count} 件</span>
+              <span class="text-slate-500">(${ratio}%)</span>
+            </div>
+          </div>
+          <div class="w-full bg-slate-700/40 h-2 rounded-full overflow-hidden">
+            <div class="bg-gradient-to-r from-rose-500 to-amber-500 h-full rounded-full transition-all duration-500" style="width: ${ratio}%"></div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // KPI Box 2: Casualty indicators for occupational injuries
+    function computeCasualtiesStatistics() {
+      let deaths = 0;
+      let injuries = 0;
+
+      filteredDataset.forEach(d => {
+        if (d["事故屬性"] === "職災") {
+          const stats = parseCasualtyData(d["人員傷亡"]);
+          deaths += stats.deaths;
+          injuries += stats.injuries;
+        }
+      });
+
+      document.getElementById("casualtyDeaths").textContent = deaths;
+      document.getElementById("casualtyInjuries").textContent = injuries;
+    }
+
+    // KPI Box 2: Top 3 incident types
+    function computeTopAccidentTypes() {
+      const container = document.getElementById("topAccidentTypes");
+      container.innerHTML = "";
+
+      const typesCount = {};
+      filteredDataset.forEach(d => {
+        const t = d["事故類型"];
+        if (t && t !== "無") {
+          typesCount[t] = (typesCount[t] || 0) + 1;
+        }
+      });
+
+      const sortedTypes = Object.entries(typesCount).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      const totalInSelected = filteredDataset.length;
+
+      if (sortedTypes.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-500 text-center block py-4">無事故類型統計</span>`;
+        return;
+      }
+
+      const colors = ["from-rose-500 to-pink-500", "from-orange-500 to-amber-500", "from-blue-500 to-indigo-500"];
+      sortedTypes.forEach(([type, count], idx) => {
+        const ratio = totalInSelected > 0 ? ((count / totalInSelected) * 100).toFixed(1) : '0';
+        
+        const el = document.createElement("div");
+        el.className = "flex items-center justify-between bg-slate-900/30 p-2.5 rounded-xl border border-slate-700/30";
+        el.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="w-5 h-5 rounded-lg bg-gradient-to-tr ${colors[idx]} text-[10px] font-bold text-white flex items-center justify-center font-mono">#${idx+1}</span>
+            <span class="text-xs font-semibold text-slate-300">${type}</span>
+          </div>
+          <div class="text-right font-mono text-xs">
+            <span class="text-slate-200 font-bold">${count} 件</span>
+            <span class="text-slate-500 ml-1">(${ratio}%)</span>
+          </div>
+        `;
+        container.appendChild(el);
+      });
+    }
+
+    // KPI Box 3: Contractor incident plant ranking (RESTRICTED to "職災" and displaying BOTH contractor & plant name)
+    function computeContractorRanking() {
+      const container = document.getElementById("contractorRankingList");
+      container.innerHTML = "";
+
+      // Compiling counts grouped by Contractor Name + Plant Name
+      const contractorPlantCounts = {};
+      let totalContractorDisasters = 0;
+
+      filteredDataset.forEach(d => {
+        if (d["事故屬性"] === "職災" && d["受傷員工類型"] === "承攬商") {
+          const contractor = d["承攬商"] || "未知承攬商";
+          if (contractor !== "無") {
+            const plant = d["廠區"] || "未知";
+            const key = `${contractor} (${plant}廠)`;
+            contractorPlantCounts[key] = (contractorPlantCounts[key] || 0) + 1;
+            totalContractorDisasters++;
+          }
+        }
+      });
+
+      // Sort combinations descending
+      const sortedContractors = Object.entries(contractorPlantCounts).sort((a, b) => b[1] - a[1]);
+
+      if (totalContractorDisasters === 0) {
+        container.innerHTML = `
+          <div class="py-8 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2">
+            <i class="fa-solid fa-circle-check text-lg text-emerald-400"></i>
+            <span>本區間無任何承攬商職災事故</span>
+          </div>
+        `;
+        return;
+      }
+
+      sortedContractors.forEach(([key, count], idx) => {
+        // Extract contractor name and plant name from key
+        const match = key.match(/(.*?)\s*\((.*?)\)/);
+        const contractorName = match ? match[1] : key;
+        const plantName = match ? match[2] : "";
+
+        // Calculate dynamic risk level
+        const riskLevel = count > 3 ? "高風險" : (count > 1 ? "中風險" : "正常");
+        const badgeColor = riskLevel === "高風險" ? "bg-rose-500/10 text-rose-400" : (riskLevel === "中風險" ? "bg-amber-500/10 text-amber-400" : "bg-emerald-500/10 text-emerald-400");
+        
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between text-xs py-1.5 border-b border-slate-800/30 last:border-0";
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-slate-900 flex items-center justify-center font-bold text-slate-400 font-mono text-[10px] shrink-0">${idx+1}</span>
+            <div class="truncate max-w-[150px]">
+              <span class="font-bold text-slate-200 block truncate" title="${contractorName}">${contractorName}</span>
+              <span class="text-[10px] text-slate-500 block">${plantName}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 font-mono shrink-0">
+            <span class="text-rose-400 font-bold">${count} 件</span>
+            <span class="px-1.5 py-0.5 rounded text-[9px] font-sans scale-90 ${badgeColor}">${riskLevel}</span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // Chart: Accident Attribute Trend
+    function renderTrendChart() {
+      const nearMissSeries = Array(12).fill(0);
+      const disasterSeries = Array(12).fill(0);
+      const propertySeries = Array(12).fill(0);
+
+      const selectedYearData = currentDataset.filter(d => {
+        const yr = String(new Date(d["事故日期"]).getFullYear());
+        return yr === selectedYear;
+      });
+
+      selectedYearData.forEach(d => {
+        const m = String(new Date(d["事故日期"]).getMonth() + 1).padStart(2, '0');
+        const idx = parseInt(m) - 1;
+        if (idx >= 0 && idx < 12) {
+          const attr = d["事故屬性"];
+          if (attr === "虛驚") nearMissSeries[idx]++;
+          else if (attr === "職災") disasterSeries[idx]++;
+          else if (attr === "財損") propertySeries[idx]++;
+        }
+      });
+
+      const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'cross', label: { backgroundColor: '#475569' } }
+        },
+        legend: {
+          data: ['虛驚', '職災', '財損'],
+          textStyle: { color: isDark ? '#94a3b8' : '#475569', fontSize: 10 },
+          top: '0%'
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
+        xAxis: [
+          {
+            type: 'category',
+            boundaryGap: false,
+            data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+            axisLabel: { color: isDark ? '#94a3b8' : '#475569', fontSize: 10 },
+            axisLine: { lineStyle: { color: isDark ? '#334155' : '#cbd5e1' } }
+          }
+        ],
+        yAxis: [
+          {
+            type: 'value',
+            axisLabel: { color: isDark ? '#94a3b8' : '#475569', fontSize: 10 },
+            splitLine: { lineStyle: { color: isDark ? '#334155' : '#cbd5e1' } }
+          }
+        ],
+        series: [
+          {
+            name: '虛驚',
+            type: 'line',
+            stack: 'Total',
+            smooth: true,
+            lineStyle: { width: 2, color: '#3b82f6' },
+            showSymbol: false,
+            areaStyle: {
+              opacity: 0.1,
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#3b82f6' },
+                { offset: 1, color: 'transparent' }
+              ])
+            },
+            emphasis: { focus: 'series' },
+            data: nearMissSeries
+          },
+          {
+            name: '職災',
+            type: 'line',
+            stack: 'Total',
+            smooth: true,
+            lineStyle: { width: 2, color: '#f43f5e' },
+            showSymbol: false,
+            areaStyle: {
+              opacity: 0.1,
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#f43f5e' },
+                { offset: 1, color: 'transparent' }
+              ])
+            },
+            emphasis: { focus: 'series' },
+            data: disasterSeries
+          },
+          {
+            name: '財損',
+            type: 'line',
+            stack: 'Total',
+            smooth: true,
+            lineStyle: { width: 2, color: '#f59e0b' },
+            showSymbol: false,
+            areaStyle: {
+              opacity: 0.1,
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#f59e0b' },
+                { offset: 1, color: 'transparent' }
+              ])
+            },
+            emphasis: { focus: 'series' },
+            data: propertySeries
+          }
+        ]
+      };
+
+      trendChart.setOption(option);
+    }
+
+    // Chart: Factory stacked rank chart
+    function renderRankChart() {
+      const plantStats = {};
+      plantsList.forEach(p => {
+        plantStats[p] = { nearMiss: 0, disaster: 0, property: 0, total: 0 };
+      });
+
+      filteredDataset.forEach(d => {
+        const p = d["廠區"];
+        const attr = d["事故屬性"];
+        if (plantStats[p] !== undefined) {
+          if (attr === "虛驚") plantStats[p].nearMiss++;
+          else if (attr === "職災") plantStats[p].disaster++;
+          else if (attr === "財損") plantStats[p].property++;
+          plantStats[p].total++;
+        }
+      });
+
+      const sortedPlants = Object.entries(plantStats).sort((a, b) => b[1].total - a[1].total);
+      
+      const xData = sortedPlants.map(item => item[0]);
+      const nearMissData = sortedPlants.map(item => item[1].nearMiss);
+      const disasterData = sortedPlants.map(item => item[1].disaster);
+      const propertyData = sortedPlants.map(item => item[1].property);
+
+      const option = {
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: {
+          data: ['虛驚', '職災', '財損'],
+          textStyle: { color: isDark ? '#94a3b8' : '#475569', fontSize: 10 },
+          top: '0%'
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
+        xAxis: {
+          type: 'category',
+          data: xData,
+          axisLabel: { color: isDark ? '#94a3b8' : '#475569', fontSize: 10 },
+          axisLine: { lineStyle: { color: isDark ? '#334155' : '#cbd5e1' } }
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: { color: isDark ? '#94a3b8' : '#475569', fontSize: 10 },
+          splitLine: { lineStyle: { color: isDark ? '#334155' : '#cbd5e1' } }
+        },
+        series: [
+          {
+            name: '虛驚',
+            type: 'bar',
+            stack: 'total',
+            emphasis: { focus: 'series' },
+            itemStyle: { color: '#3b82f6', borderRadius: [0, 0, 0, 0] },
+            data: nearMissData
+          },
+          {
+            name: '職災',
+            type: 'bar',
+            stack: 'total',
+            emphasis: { focus: 'series' },
+            itemStyle: { color: '#f43f5e', borderRadius: [0, 0, 0, 0] },
+            data: disasterData
+          },
+          {
+            name: '財損',
+            type: 'bar',
+            stack: 'total',
+            emphasis: { focus: 'series' },
+            itemStyle: { color: '#f59e0b', borderRadius: [3, 3, 0, 0] },
+            data: propertyData
+          }
+        ]
+      };
+
+      rankChart.setOption(option);
+    }
+
+    // Chart: Compound Annual Growth Rate (CAGR)
+    function renderCAGRChart() {
+      const years = currentDataset.map(d => new Date(d["事故日期"]).getFullYear()).filter(Boolean);
+      const minYearInHistory = Math.min(...years);
+      const endYearNum = parseInt(selectedYear);
+      let startYearNum = minYearInHistory;
+
+      if (endYearNum <= startYearNum) {
+        startYearNum = Math.max(minYearInHistory, endYearNum - 3);
+      }
+
+      const yearsDiff = endYearNum - startYearNum;
+      const cagrList = [];
+
+      plantsList.forEach(plant => {
+        const startCount = currentDataset.filter(d => {
+          const yr = new Date(d["事故日期"]).getFullYear();
+          return yr === startYearNum && d["廠區"] === plant;
+        }).length;
+
+        const endCount = currentDataset.filter(d => {
+          const yr = new Date(d["事故日期"]).getFullYear();
+          return yr === endYearNum && d["廠區"] === plant;
+        }).length;
+
+        let cagr = 0;
+        if (yearsDiff > 0) {
+          cagr = Math.pow((endCount + 0.5) / (startCount + 0.5), 1 / yearsDiff) - 1;
+        } else {
+          cagr = (endCount - startCount) / (startCount + 0.5);
+        }
+
+        cagrList.push({
+          plant: plant,
+          cagrVal: cagr * 100
+        });
+      });
+
+      cagrList.sort((a, b) => a.cagrVal - b.cagrVal);
+
+      const xData = cagrList.map(item => item.plant);
+      const yData = cagrList.map(item => parseFloat(item.cagrVal.toFixed(1)));
+
+      const option = {
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'axis',
+          formatter: function(params) {
+            const item = params[0];
+            const direction = item.value <= 0 ? '減少 (安全改善)' : '增加 (安全惡化)';
+            const colorClass = item.value <= 0 ? '#10b981' : '#f43f5e';
+            return `<div class="font-bold text-xs">${item.name}廠區</div>
+                    <div class="text-xs text-slate-300 mt-1">複合年增長率: 
+                      <span class="font-mono font-bold" style="color: ${colorClass}">${item.value}%</span> (${direction})
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-1">計算基準：${startYearNum} 至 ${endYearNum} 年</div>`;
+          }
+        },
+        grid: { left: '3%', right: '4%', bottom: '5%', top: '15%', containLabel: true },
+        xAxis: {
+          type: 'category',
+          data: xData,
+          axisLabel: { color: isDark ? '#94a3b8' : '#475569', fontSize: 10 },
+          axisLine: { lineStyle: { color: isDark ? '#334155' : '#cbd5e1' } }
+        },
+        yAxis: {
+          type: 'value',
+          name: 'CAGR (%)',
+          nameTextStyle: { color: isDark ? '#64748b' : '#475569', fontSize: 9 },
+          axisLabel: { color: isDark ? '#94a3b8' : '#475569', fontSize: 10 },
+          splitLine: { lineStyle: { color: isDark ? '#334155' : '#cbd5e1' } }
+        },
+        series: [
+          {
+            name: '複合年增長率 (CAGR)',
+            type: 'bar',
+            barWidth: '45%',
+            data: yData.map(val => {
+              return {
+                value: val,
+                itemStyle: {
+                  color: val <= 0 ? '#10b981' : '#f43f5e',
+                  borderRadius: val <= 0 ? [0, 0, 4, 4] : [4, 4, 0, 0]
+                }
+              };
+            })
+          }
+        ]
+      };
+
+      cagrChart.setOption(option);
+    }
+
+    // Interactive Accident Ledger table controller
+    let currentPage = 1;
+    const pageSize = 8;
+    let ledgerFilteredData = [];
+
+    function filterLedgerTable() {
+      const searchVal = document.getElementById("searchTableInput").value.toLowerCase();
+      const plantVal = document.getElementById("tablePlantFilter").value;
+      const contractorVal = document.getElementById("tableContractorFilter").value;
+      const attrVal = document.getElementById("tableAttrFilter").value;
+
+      ledgerFilteredData = filteredDataset.filter(d => {
+        const nameMatch = d["事故名稱"]?.toLowerCase().includes(searchVal) || 
+                          d["事故類型"]?.toLowerCase().includes(searchVal) || 
+                          d["直接原因"]?.toLowerCase().includes(searchVal) || 
+                          d["改善措施"]?.toLowerCase().includes(searchVal) ||
+                          d["承攬商"]?.toLowerCase().includes(searchVal);
+        
+        const plantMatch = (plantVal === 'all' || d["廠區"] === plantVal);
+        const contractorMatch = (contractorVal === 'all' || d["承攬商"] === contractorVal);
+        const attrMatch = (attrVal === 'all' || d["事故屬性"] === attrVal);
+
+        return nameMatch && plantMatch && contractorMatch && attrMatch;
+      });
+
+      currentPage = 1;
+      renderLedgerTable();
+    }
+
+    // Render current table page with Contractor column included
+    function renderLedgerTable() {
+      const tbody = document.getElementById("accidentTableBody");
+      tbody.innerHTML = "";
+
+      const totalRecords = ledgerFilteredData.length;
+      const startIdx = (currentPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, totalRecords);
+
+      if (totalRecords === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="text-center py-10 text-slate-500 text-xs">
+              <i class="fa-solid fa-folder-open text-xl block mb-2 text-slate-600"></i>
+              找不到符合目前篩選條件的事故資料。
+            </td>
+          </tr>
+        `;
+        document.getElementById("tableRecordCountInfo").textContent = `顯示 0 到 0 筆事故，共 0 筆`;
+        document.getElementById("tablePagination").innerHTML = "";
+        return;
+      }
+
+      const pagedData = ledgerFilteredData.slice(startIdx, endIdx);
+
+      pagedData.forEach(d => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/40 cursor-pointer transition border-b border-slate-700/20";
+        tr.onclick = () => openModal(d);
+
+        let attrBadge = "";
+        if (d["事故屬性"] === "虛驚") attrBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-400">虛驚</span>';
+        else if (d["事故屬性"] === "職災") attrBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400">職災</span>';
+        else if (d["事故屬性"] === "財損") attrBadge = '<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400">財損</span>';
+
+        const casualties = d["人員傷亡"] || "無";
+        const injuredType = d["受傷員工類型"] || "無";
+        const loss = d["財物損失"] || "無";
+        const contractorText = d["承攬商"] || "無";
+
+        // Display nice badge for contractor if it is actual contractor
+        const contractorBadge = contractorText !== "無" 
+          ? `<span class="px-2 py-0.5 bg-slate-800/80 text-blue-400 rounded-lg border border-slate-700 text-[11px] font-semibold truncate block max-w-[120px]">${contractorText}</span>` 
+          : `<span class="text-slate-500 font-mono">-</span>`;
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-semibold text-slate-200 truncate max-w-[180px]">${d["事故名稱"]}</td>
+          <td class="px-4 py-3">${attrBadge}</td>
+          <td class="px-4 py-3 font-mono text-slate-400">${d["事故日期"]}</td>
+          <td class="px-4 py-3">${d["事故類型"] || "N/A"}</td>
+          <td class="px-4 py-3">${contractorBadge}</td> <!-- Added contractor info -->
+          <td class="px-4 py-3 text-slate-400">${casualties}</td>
+          <td class="px-4 py-3 text-slate-400">${injuredType}</td>
+          <td class="px-4 py-3 text-amber-400 font-semibold font-mono">${loss}</td>
+          <td class="px-4 py-3 font-bold text-slate-300">${d["廠區"]}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update ledger counts
+      document.getElementById("tableRecordCountInfo").textContent = `顯示 ${startIdx + 1} 到 ${endIdx} 筆事故，共 ${totalRecords} 筆`;
+      renderPaginationControls(totalRecords);
+    }
+
+    // Build pagination links
+    function renderPaginationControls(totalRecords) {
+      const pagContainer = document.getElementById("tablePagination");
+      pagContainer.innerHTML = "";
+      
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      if (totalPages <= 1) return;
+
+      const createBtn = (p, text, active = false) => {
+        const btn = document.createElement("button");
+        btn.textContent = text;
+        btn.className = `px-2.5 py-1 text-[10px] font-mono font-bold rounded-lg transition ${active ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'}`;
+        btn.onclick = () => {
+          currentPage = p;
+          renderLedgerTable();
+        };
+        pagContainer.appendChild(btn);
+      };
+
+      // Previous button
+      if (currentPage > 1) createBtn(currentPage - 1, "<");
+
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, currentPage + 2);
+
+      for (let p = startPage; p <= endPage; p++) {
+        createBtn(p, p, p === currentPage);
+      }
+
+      // Next button
+      if (currentPage < totalPages) createBtn(currentPage + 1, ">");
+    }
+
+    // Play/Pause Automator
+    function togglePlay() {
+      const btn = document.getElementById("playBtn");
+      const icon = document.getElementById("playIcon");
+      const text = document.getElementById("playText");
+      const slider = document.getElementById("yearSlider");
+
+      const minVal = parseInt(slider.min);
+      const maxVal = parseInt(slider.max);
+
+      if (isPlaying) {
+        clearInterval(playInterval);
+        isPlaying = false;
+        icon.className = "fa-solid fa-play text-[10px]";
+        text.textContent = "自動播放";
+        btn.className = "flex items-center gap-1.5 px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs text-slate-200 transition";
+      } else {
+        isPlaying = true;
+        icon.className = "fa-solid fa-pause text-[10px]";
+        text.textContent = "暫停輪播";
+        btn.className = "flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs text-white shadow-lg shadow-blue-500/20 transition";
+
+        playInterval = setInterval(() => {
+          let currentVal = parseInt(slider.value);
+          if (currentVal >= maxVal) {
+            slider.value = minVal;
+          } else {
+            slider.value = currentVal + 1;
+          }
+          onYearSliderChange(slider.value);
+        }, 3000);
+      }
+    }
+
+    // Smart AI summary builder
+    function generateExecutiveInsightSummary() {
+      const summaryEl = document.getElementById("executiveSummary");
+      const total = filteredDataset.length;
+      
+      if (total === 0) {
+        summaryEl.textContent = `在 ${selectedYear} 年期間內目前所選的篩選區間，工安體系中查無事故建檔紀錄。請拖動年度或調整月份過濾。`;
+        return;
+      }
+
+      // Compute plant with highest accidents
+      const plantCounts = {};
+      filteredDataset.forEach(d => {
+        plantCounts[d["廠區"]] = (plantCounts[d["廠區"]] || 0) + 1;
+      });
+      const topPlant = Object.entries(plantCounts).sort((a,b) => b[1] - a[1])[0]?.[0] || "--";
+
+      // Compute fatalities/injuries totals
+      let deaths = 0;
+      let injuries = 0;
+      filteredDataset.forEach(d => {
+        if (d["事故屬性"] === "職災") {
+          const stats = parseCasualtyData(d["人員傷亡"]);
+          deaths += stats.deaths;
+          injuries += stats.injuries;
+        }
+      });
+
+      // Find the plant with the lowest CAGR (safest/most improved) over the years
+      const years = currentDataset.map(d => new Date(d["事故日期"]).getFullYear()).filter(Boolean);
+      const minYearInHistory = Math.min(...years);
+      const startYear = minYearInHistory;
+      const endYear = parseInt(selectedYear);
+      const yearsDiff = endYear - startYear;
+
+      let bestPlant = "--";
+      let lowestCagr = Infinity;
+
+      if (yearsDiff > 0) {
+        plantsList.forEach(plant => {
+          const startCount = currentDataset.filter(d => {
+            const yr = new Date(d["事故日期"]).getFullYear();
+            return yr === startYear && d["廠區"] === plant;
+          }).length;
+          
+          const endCount = currentDataset.filter(d => {
+            const yr = new Date(d["事故日期"]).getFullYear();
+            return yr === endYear && d["廠區"] === plant;
+          }).length;
+
+          const cagr = Math.pow((endCount + 0.5) / (startCount + 0.5), 1 / yearsDiff) - 1;
+          if (cagr < lowestCagr) {
+            lowestCagr = cagr;
+            bestPlant = plant;
+          }
+        });
+      }
+
+      const cagrText = lowestCagr !== Infinity ? `其中 ${bestPlant} 廠區之年度複合事故增長率 (CAGR) 為 ${(lowestCagr * 100).toFixed(1)}%，安全成效進步最顯著。` : "";
+
+      summaryEl.innerHTML = `
+        在 <strong>${selectedYear} 年 ${selectedMonth === 'all' ? '全年度' : parseInt(selectedMonth) + '月'}</strong> 區間內，全廠區累計追蹤事故共計 <strong class="text-blue-400 font-bold">${total} 件</strong>，以 <strong>${topPlant} 廠</strong> 發生頻率最高。
+        職災類型事故中，累計造成 <strong class="text-rose-400 font-bold">${deaths} 員死亡</strong>、<strong class="text-amber-400 font-bold">${injuries} 員受傷</strong>。${cagrText}
+        主管層級應加強高危廠區的承包商安全督導，並特別預防高頻事故。
+      `;
+    }
+
+    // Modal Drawer Controllers (EHS Investigation Card)
+    function openModal(data) {
+      document.getElementById("mName").textContent = data["事故名稱"];
+      document.getElementById("modalIncidentId").textContent = `編號：INC-${data["事故名稱"].split('_').pop() || '000'}`;
+      document.getElementById("mPlant").textContent = `${data["廠區"]}廠區`;
+      document.getElementById("mDate").textContent = data["事故日期"];
+      document.getElementById("mType").textContent = data["事故類型"] || "未分類";
+      document.getElementById("mCasualty").textContent = data["人員傷亡"] || "無傷亡";
+      document.getElementById("mInjuredType").textContent = data["受傷員工類型"] || "無受傷";
+      document.getElementById("mContractor").textContent = data["承攬商"] || "無";
+      document.getElementById("mPropertyLoss").textContent = data["財物損失"] || "無損失";
+      
+      document.getElementById("mDirectCause").textContent = data["直接原因"] || "仍在調查或分析中。";
+      document.getElementById("mIndirectCause").textContent = data["間接原因"] || "仍在調查或分析中。";
+      document.getElementById("mBasicCause").textContent = data["基本原因"] || "仍在調查或分析中。";
+      document.getElementById("mImprovement").textContent = data["改善措施"] || "改善及預防方案研擬中。";
+
+      // Configure Attribute Badge styling inside popup
+      const attrEl = document.getElementById("mAttribute");
+      const attr = data["事故屬性"];
+      attrEl.textContent = attr;
+      
+      attrEl.className = "px-2 py-0.5 inline-block text-[10px] font-bold rounded-full";
+      if (attr === "虛驚") attrEl.classList.add("bg-blue-500/20", "text-blue-300");
+      else if (attr === "職災") attrEl.classList.add("bg-rose-500/20", "text-rose-300");
+      else if (attr === "財損") attrEl.classList.add("bg-amber-500/20", "text-amber-300");
+
+      // Dynamic color coding for modal headers
+      const iconContainer = document.getElementById("modalHeaderIcon");
+      iconContainer.className = "p-1.5 rounded-lg shrink-0";
+      if (attr === "虛驚") iconContainer.classList.add("bg-blue-500/10", "text-blue-400");
+      else if (attr === "職災") iconContainer.classList.add("bg-rose-500/10", "text-rose-400");
+      else if (attr === "財損") iconContainer.classList.add("bg-amber-500/10", "text-amber-400");
+
+      const modal = document.getElementById("reportModal");
+      modal.classList.remove("hidden");
+    }
+
+    // Close Report modal popup
+    function closeModal() {
+      document.getElementById("reportModal").classList.add("hidden");
+    }
+
+    // Modern Light / Dark Theme toggle switcher
+    function toggleTheme() {
+      isDark = !isDark;
+      const body = document.getElementById("body-theme");
+      const icon = document.getElementById("theme-icon");
+
+      if (isDark) {
+        body.classList.remove("bg-slate-50", "text-slate-800");
+        body.classList.add("bg-slate-900", "text-slate-100");
+        icon.className = "fa-solid fa-circle-half-stroke text-sm text-slate-300";
+      } else {
+        body.classList.remove("bg-slate-900", "text-slate-100");
+        body.classList.add("bg-slate-50", "text-slate-800");
+        icon.className = "fa-solid fa-circle-half-stroke text-sm text-slate-700";
+      }
+
+      // Regenerate/Dispose ECharts to re-apply color palettes on theme shift
+      if (trendChart) trendChart.dispose();
+      if (rankChart) rankChart.dispose();
+      if (cagrChart) cagrChart.dispose();
+
+      initCharts();
+      updateDashboard();
+    }
+  </script>
+</body>
+</html>
